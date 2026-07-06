@@ -111,12 +111,6 @@
       "area_mowed_today": {
         "name": "Klippet areal i dag"
       },
-      "next_schedule": {
-        "name": "Neste klipping"
-      },
-      "area_mowed_total": {
-        "name": "Totalt klippet areal"
-      },
       "lawn_area": {
         "name": "Plenareal"
       },

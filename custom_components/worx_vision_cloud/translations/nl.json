@@ -111,12 +111,6 @@
       "area_mowed_today": {
         "name": "Vandaag gemaaid oppervlak"
       },
-      "next_schedule": {
-        "name": "Volgende maaibeurt"
-      },
-      "area_mowed_total": {
-        "name": "Totaal gemaaid oppervlak"
-      },
       "lawn_area": {
         "name": "Gazonoppervlak"
       },

@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+- Updated `pyworxcloud` from `6.3.6` to `6.4.1`.
+- Added German, French, Dutch, Spanish, Italian, Swedish, Norwegian and Danish
+  translations while keeping Polish and English.
+- Made entity names, enum sensor states and one-time mowing zone options
+  translatable.
+- Localized schedule summaries, weekday labels and calendar events in all
+  supported languages.
+- Updated the device tracker to use the current Home Assistant imports.
+- Simplified the primary mower entity name according to Home Assistant naming
+  conventions without changing its entity ID.
+
 ## 1.0.11 - 2026-06-18
 
 - Allowed the one-time mowing service to accept `runtime: 0`, so automations can explicitly start an edge-only pass after normal mowing.

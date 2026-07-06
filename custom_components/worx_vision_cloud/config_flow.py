@@ -48,7 +48,7 @@ async def _validate_input(data: dict[str, Any]) -> None:
     try:
         await cloud.authenticate()
         await cloud.connect()
-    except AuthorizationError as err:
+    except AuthorizationError:
         raise
     except TooManyRequestsError as err:
         raise RateLimited from err

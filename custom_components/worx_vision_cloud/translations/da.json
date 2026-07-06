@@ -111,12 +111,6 @@
       "area_mowed_today": {
         "name": "Areal slået i dag"
       },
-      "next_schedule": {
-        "name": "Næste slåning"
-      },
-      "area_mowed_total": {
-        "name": "Samlet slået areal"
-      },
       "lawn_area": {
         "name": "Plænens areal"
       },

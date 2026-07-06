@@ -111,12 +111,6 @@
       "area_mowed_today": {
         "name": "Klippt yta idag"
       },
-      "next_schedule": {
-        "name": "Nästa klippning"
-      },
-      "area_mowed_total": {
-        "name": "Total klippt yta"
-      },
       "lawn_area": {
         "name": "Gräsmattans yta"
       },

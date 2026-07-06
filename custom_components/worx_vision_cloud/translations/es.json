@@ -111,12 +111,6 @@
       "area_mowed_today": {
         "name": "Superficie cortada hoy"
       },
-      "next_schedule": {
-        "name": "Próximo corte"
-      },
-      "area_mowed_total": {
-        "name": "Superficie total cortada"
-      },
       "lawn_area": {
         "name": "Superficie del césped"
       },

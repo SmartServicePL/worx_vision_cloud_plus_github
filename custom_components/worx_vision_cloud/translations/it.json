@@ -111,12 +111,6 @@
       "area_mowed_today": {
         "name": "Superficie tagliata oggi"
       },
-      "next_schedule": {
-        "name": "Prossimo taglio"
-      },
-      "area_mowed_total": {
-        "name": "Superficie totale tagliata"
-      },
       "lawn_area": {
         "name": "Superficie del prato"
       },
