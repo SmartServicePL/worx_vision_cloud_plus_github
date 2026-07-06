@@ -53,7 +53,7 @@ jobs:
                   heading = line[3:].strip()
                   if capture:
                       break
-                  capture = heading == version
+                  capture = heading == version or heading.startswith(f"{version} -")
                   continue
               if capture:
                   notes.append(line)
