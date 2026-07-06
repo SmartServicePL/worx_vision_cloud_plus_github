@@ -103,13 +103,28 @@
         "name": "Push-notifikationer"
       },
       "daily_progress": {
-        "name": "Dagens fremskridt"
+        "name": "Dagens fremskridt (cloud)"
       },
       "remaining_progress": {
-        "name": "Resterende at slå"
+        "name": "Resterende at slå (cloud)"
       },
       "area_mowed_today": {
-        "name": "Areal slået i dag"
+        "name": "Areal slået i dag (cloud)"
+      },
+      "next_schedule": {
+        "name": "Næste tidsplan"
+      },
+      "area_mowed_total": {
+        "name": "Samlet bearbejdet areal"
+      },
+      "estimated_area_mowed_today": {
+        "name": "Anslået areal slået i dag"
+      },
+      "estimated_daily_progress": {
+        "name": "Anslået dagsfremskridt"
+      },
+      "cloud_statistics_updated": {
+        "name": "Cloudstatistik opdateret"
       },
       "lawn_area": {
         "name": "Plænens areal"

@@ -103,13 +103,28 @@
         "name": "Push-varsler"
       },
       "daily_progress": {
-        "name": "Dagens fremgang"
+        "name": "Dagens fremgang (sky)"
       },
       "remaining_progress": {
-        "name": "Gjenstår å klippe"
+        "name": "Gjenstår å klippe (sky)"
       },
       "area_mowed_today": {
-        "name": "Klippet areal i dag"
+        "name": "Klippet areal i dag (sky)"
+      },
+      "next_schedule": {
+        "name": "Neste tidsplan"
+      },
+      "area_mowed_total": {
+        "name": "Totalt bearbeidet areal"
+      },
+      "estimated_area_mowed_today": {
+        "name": "Anslått klippet areal i dag"
+      },
+      "estimated_daily_progress": {
+        "name": "Anslått dagsfremgang"
+      },
+      "cloud_statistics_updated": {
+        "name": "Skystatistikk oppdatert"
       },
       "lawn_area": {
         "name": "Plenareal"

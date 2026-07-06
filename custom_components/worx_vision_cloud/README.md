@@ -11,7 +11,7 @@ Main features:
 - useful mower sensors and binary sensors
 - rain delay, time-extension, lawn area and lawn perimeter number entities
 - mower lock, firmware auto-update and schedule switches
-- mowing schedule calendar
+- mowing schedule summary, next start sensor and calendar
 - RTK map camera
 - recent RTK trail overlay
 - RTK robot position tracker
@@ -21,8 +21,12 @@ Main features:
 - on-demand edge cutting button
 - blade runtime reset button
 - battery cycle reset button
-- daily progress and mowed area sensors when available
+- separate cumulative, daily cloud and locally estimated mowing statistics
 - Polish, English, German, French, Dutch, Spanish, Italian, Swedish, Norwegian
   Bokmål and Danish translations
 
 Integration prepared by **Smart Service**.
+
+Worx's `area_mowed` value is cumulative covered area and can update late.
+Daily cloud values use a persisted midnight baseline. Estimated values use
+locally observed blade-active time and are clearly labeled as estimates.

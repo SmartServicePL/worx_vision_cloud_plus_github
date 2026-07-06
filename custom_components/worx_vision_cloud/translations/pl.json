@@ -103,13 +103,28 @@
         "name": "Powiadomienia push"
       },
       "daily_progress": {
-        "name": "Dzienny postęp"
+        "name": "Dzienny postęp (chmura)"
       },
       "remaining_progress": {
-        "name": "Pozostało do skoszenia"
+        "name": "Pozostało do skoszenia (chmura)"
       },
       "area_mowed_today": {
-        "name": "Skoszony obszar dzisiaj"
+        "name": "Skoszony obszar dzisiaj (chmura)"
+      },
+      "next_schedule": {
+        "name": "Następne zaplanowane koszenie"
+      },
+      "area_mowed_total": {
+        "name": "Łączny obszar pokryty koszeniem"
+      },
+      "estimated_area_mowed_today": {
+        "name": "Szacowany obszar skoszony dzisiaj"
+      },
+      "estimated_daily_progress": {
+        "name": "Szacowany dzienny postęp"
+      },
+      "cloud_statistics_updated": {
+        "name": "Aktualizacja statystyk chmury"
       },
       "lawn_area": {
         "name": "Powierzchnia trawnika"

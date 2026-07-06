@@ -103,13 +103,28 @@
         "name": "Notificaciones push"
       },
       "daily_progress": {
-        "name": "Progreso diario"
+        "name": "Progreso diario (nube)"
       },
       "remaining_progress": {
-        "name": "Restante por cortar"
+        "name": "Restante por cortar (nube)"
       },
       "area_mowed_today": {
-        "name": "Superficie cortada hoy"
+        "name": "Superficie cortada hoy (nube)"
+      },
+      "next_schedule": {
+        "name": "Próxima programación"
+      },
+      "area_mowed_total": {
+        "name": "Superficie total recorrida"
+      },
+      "estimated_area_mowed_today": {
+        "name": "Superficie estimada cortada hoy"
+      },
+      "estimated_daily_progress": {
+        "name": "Progreso diario estimado"
+      },
+      "cloud_statistics_updated": {
+        "name": "Estadísticas de la nube actualizadas"
       },
       "lawn_area": {
         "name": "Superficie del césped"

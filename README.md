@@ -27,12 +27,13 @@ If this integration helps you, you can support Smart Service:
 - Switches for firmware auto update, mower lock and native schedule.
 - Battery, status, error and connectivity sensors.
 - Useful maintenance, cloud/MQTT diagnostic and mowing-readiness sensors.
-- Schedule sensor and Home Assistant calendar entity.
+- Schedule summary, next-schedule timestamp and Home Assistant calendar entity.
 - RTK map camera rendered from the Worx private map API with a recent RTK trail overlay.
 - RTK robot position as a `device_tracker`.
 - Optional RTK address sensor using OpenStreetMap Nominatim reverse geocoding, disabled by default.
 - Switches for Smart edge cutting, Save the hedgehogs and schedule edge procedure.
-- Daily mowing progress, remaining progress, mowed area, lawn area and efficiency sensors when available from the API.
+- Separate cloud and locally estimated daily mowing statistics, plus cumulative
+  covered area, lawn area and efficiency sensors.
 - Separate smart mowing automation blueprint repository.
 - Polish, English, German, French, Dutch, Spanish, Italian, Swedish, Norwegian
   and Danish translations.
@@ -105,7 +106,7 @@ The exact entity list depends on what your mower reports. Typical entities inclu
 - `calendar` mowing schedule
 - `camera` RTK map
 - `device_tracker` RTK robot position
-- `sensor` battery, status, error, readiness, cloud connection, RSSI, schedule, rain delay, RTK map, RTK trail, daily progress, remaining progress, mowed area, runtime, efficiency and maintenance values
+- `sensor` battery, status, error, readiness, cloud connection, RSSI, schedule, next schedule, rain delay, RTK map, RTK trail, cloud and estimated daily progress, today and total covered area, runtime, efficiency and maintenance values
 - `binary_sensor` online, IoT/MQTT registration, locked, rain, party mode and pause mode
 - `switch` firmware auto update, mower lock, native schedule, Smart edge cutting, Save the hedgehogs and schedule edge procedure
 - `number` rain delay, schedule time extension, lawn area and lawn perimeter
@@ -120,6 +121,30 @@ Home Assistant blueprints and automations are maintained in a separate repositor
 [SmartServicePL/worx_vision_cloud_plus_automation](https://github.com/SmartServicePL/worx_vision_cloud_plus_automation)
 
 The smart mowing schedule blueprint lives there, together with its setup guide and the **My Home Assistant** import button.
+
+## Schedule And Mowing Statistics
+
+`Next schedule` is a timestamp for the next enabled slot in the mower's native
+weekly schedule. It becomes unavailable when that schedule is disabled or
+paused with party mode. It does not predict starts created by external Home
+Assistant automations.
+
+Worx reports `area_mowed` as a cumulative covered-area counter, not as "area
+mowed today". The integration keeps a persisted local-midnight baseline and
+provides these separate values:
+
+- **Total covered area**: the unmodified cumulative Worx counter.
+- **Area mowed today (cloud)**: today's increase of that counter.
+- **Daily progress (cloud)**: the cloud daily area divided by lawn size.
+- **Estimated area/progress**: locally observed blade-active time multiplied by
+  the mower's long-term covered-area efficiency.
+
+Cloud statistics are refreshed every five minutes but can still lag because the
+private Worx endpoint itself may publish old values. The estimated sensors move
+while the mower works, but they are estimates rather than measurements. Covered
+area includes overlapping passes, so it can exceed the physical lawn area. On
+the first day after installing this feature, the current cumulative value
+becomes the baseline and the daily cloud value starts at zero.
 
 ## RTK Map
 
@@ -150,6 +175,10 @@ Before opening an issue, remove private data from logs and screenshots. See [SEC
 ## Limitations
 
 The Worx / Positec cloud API is not officially public. Some endpoints used here are reverse-engineered and can change without notice. This is a best-effort custom integration, not official Worx software.
+
+The cloud does not expose a reliable flag distinguishing a temporary charging
+stop from completion of the whole mowing cycle. The integration therefore does
+not claim to provide a definitive "mowing finished" sensor.
 
 ## Credits
 

@@ -103,13 +103,28 @@
         "name": "Push-Benachrichtigungen"
       },
       "daily_progress": {
-        "name": "Tagesfortschritt"
+        "name": "Tagesfortschritt (Cloud)"
       },
       "remaining_progress": {
-        "name": "Verbleibend zu mähen"
+        "name": "Verbleibend zu mähen (Cloud)"
       },
       "area_mowed_today": {
-        "name": "Heute gemähte Fläche"
+        "name": "Heute gemähte Fläche (Cloud)"
+      },
+      "next_schedule": {
+        "name": "Nächster Zeitplan"
+      },
+      "area_mowed_total": {
+        "name": "Gesamte bearbeitete Fläche"
+      },
+      "estimated_area_mowed_today": {
+        "name": "Geschätzte heute gemähte Fläche"
+      },
+      "estimated_daily_progress": {
+        "name": "Geschätzter Tagesfortschritt"
+      },
+      "cloud_statistics_updated": {
+        "name": "Cloud-Statistik aktualisiert"
       },
       "lawn_area": {
         "name": "Rasenfläche"

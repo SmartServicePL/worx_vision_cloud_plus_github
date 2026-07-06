@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from collections.abc import Iterable
-from datetime import date, datetime
+from datetime import date, datetime, time, timedelta
 from enum import Enum
 import json
 from math import cos, hypot, radians
@@ -31,6 +31,13 @@ RAW_SOURCE_ATTRS = (
 
 MAX_LIST_ITEMS = 80
 MAX_STRING_STATE_LENGTH = 240
+
+MOWING_STATUS_IDS = {7, 8, 12, 32, 110, 111}
+RETURNING_STATUS_IDS = {4, 5, 6, 30, 104}
+STARTING_STATUS_IDS = {2, 3, 33, 103}
+PAUSED_STATUS_IDS = {34}
+DOCKED_STATUS_IDS = {1}
+ERROR_STATUS_IDS = {9, 10, 13}
 
 SENSITIVE_RAW_PATHS = {
     "cfg.rtk.ck",
@@ -509,6 +516,65 @@ def schedule_slots(device: Any) -> list[Any]:
     return [slot for slot in slots if get_dict_value(slot, "day") is not None]
 
 
+def _parse_schedule_datetime(value: Any, timezone) -> datetime | None:
+    """Parse a pyworxcloud schedule timestamp in the mower's local timezone."""
+    if isinstance(value, datetime):
+        return value.replace(tzinfo=timezone) if value.tzinfo is None else value
+    if not isinstance(value, str) or not value.strip():
+        return None
+    try:
+        parsed = datetime.fromisoformat(value.strip().replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    return parsed.replace(tzinfo=timezone) if parsed.tzinfo is None else parsed
+
+
+def _parse_schedule_time(value: Any) -> time | None:
+    """Parse an HH:MM schedule slot."""
+    if not isinstance(value, str):
+        return None
+    try:
+        return time.fromisoformat(value.strip())
+    except ValueError:
+        return None
+
+
+def next_schedule_start(device: Any, now: datetime) -> datetime | None:
+    """Return the next enabled weekly schedule start as an aware datetime."""
+    if now.tzinfo is None:
+        raise ValueError("now must be timezone-aware")
+
+    schedules = getattr(device, "schedules", {}) or {}
+    if get_dict_value(schedules, "active") is False:
+        return None
+    if get_dict_value(schedules, "party_mode_enabled") is True:
+        return None
+
+    library_value = _parse_schedule_datetime(
+        get_dict_value(schedules, "next_schedule_start"),
+        now.tzinfo,
+    )
+    if library_value is not None:
+        library_value = library_value.astimezone(now.tzinfo)
+        if library_value >= now:
+            return library_value
+
+    candidates: list[datetime] = []
+    for day_offset in range(14):
+        target_date = (now + timedelta(days=day_offset)).date()
+        for slot in schedule_slots(device):
+            if schedule_day_index(get_dict_value(slot, "day")) != target_date.weekday():
+                continue
+            start_time = _parse_schedule_time(get_dict_value(slot, "start"))
+            if start_time is None:
+                continue
+            start = datetime.combine(target_date, start_time, tzinfo=now.tzinfo)
+            if start >= now:
+                candidates.append(start)
+
+    return min(candidates) if candidates else None
+
+
 def schedule_day_index(day: Any) -> int | None:
     """Return Python weekday index for a pyworxcloud schedule day."""
     if day is None:
@@ -592,4 +658,5 @@ def schedule_attributes(
         "one_time_schedule": get_dict_value(schedules, "one_time_schedule"),
         "party_mode_enabled": get_dict_value(schedules, "party_mode_enabled"),
         "time_extension": get_dict_value(schedules, "time_extension"),
+        "next_schedule_start": get_dict_value(schedules, "next_schedule_start"),
     }

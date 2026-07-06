@@ -1,6 +1,29 @@
 # Changelog
 
-## Unreleased
+## 1.2.0 - 2026-07-06
+
+- Added a next-schedule timestamp sensor with timezone-aware fallback
+  calculation for enabled native weekly schedules.
+- Corrected `area_mowed` handling: the Worx value is now exposed as cumulative
+  covered area instead of being mislabeled as today's area.
+- Added persisted daily cloud area/progress based on a local-midnight baseline.
+- Added clearly labeled estimated daily area and progress based on locally
+  observed blade-active time and long-term mowing efficiency.
+- Changed mowing efficiency to prefer cumulative blade-active time over total
+  mower runtime.
+- Added a cloud-statistics update timestamp and refreshed private REST data
+  every five minutes.
+- Fixed coordinator notifications for REST-enriched data by enabling
+  `always_update`.
+- Passed the config entry explicitly to the coordinator for Home Assistant
+  2026.8 compatibility.
+- Stopped treating the Worx account e-mail as a Home Assistant area, removed
+  account prefixes from suggested device names and migrated the newly added
+  statistic entity IDs away from that private prefix.
+- Removed the deprecated device-tracker `battery_level` property while keeping
+  the compatibility attribute, preventing a Home Assistant 2027.7 break.
+- Added unit tests for schedule fallback, counter reset, day rollover and
+  mowing across midnight.
 
 ## 1.1.0 - 2026-07-06
 

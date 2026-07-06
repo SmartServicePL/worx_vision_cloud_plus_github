@@ -103,13 +103,28 @@
         "name": "Push notifications"
       },
       "daily_progress": {
-        "name": "Daily progress"
+        "name": "Daily progress (cloud)"
       },
       "remaining_progress": {
-        "name": "Remaining to mow"
+        "name": "Remaining to mow (cloud)"
       },
       "area_mowed_today": {
-        "name": "Area mowed today"
+        "name": "Area mowed today (cloud)"
+      },
+      "next_schedule": {
+        "name": "Next schedule"
+      },
+      "area_mowed_total": {
+        "name": "Total covered area"
+      },
+      "estimated_area_mowed_today": {
+        "name": "Estimated area mowed today"
+      },
+      "estimated_daily_progress": {
+        "name": "Estimated daily progress"
+      },
+      "cloud_statistics_updated": {
+        "name": "Cloud statistics updated"
       },
       "lawn_area": {
         "name": "Lawn area"

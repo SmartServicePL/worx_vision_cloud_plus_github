@@ -103,13 +103,28 @@
         "name": "Pushmeldingen"
       },
       "daily_progress": {
-        "name": "Dagvoortgang"
+        "name": "Dagvoortgang (cloud)"
       },
       "remaining_progress": {
-        "name": "Nog te maaien"
+        "name": "Nog te maaien (cloud)"
       },
       "area_mowed_today": {
-        "name": "Vandaag gemaaid oppervlak"
+        "name": "Vandaag gemaaid oppervlak (cloud)"
+      },
+      "next_schedule": {
+        "name": "Volgend schema"
+      },
+      "area_mowed_total": {
+        "name": "Totaal bewerkt oppervlak"
+      },
+      "estimated_area_mowed_today": {
+        "name": "Geschat vandaag gemaaid oppervlak"
+      },
+      "estimated_daily_progress": {
+        "name": "Geschatte dagvoortgang"
+      },
+      "cloud_statistics_updated": {
+        "name": "Cloudstatistieken bijgewerkt"
       },
       "lawn_area": {
         "name": "Gazonoppervlak"

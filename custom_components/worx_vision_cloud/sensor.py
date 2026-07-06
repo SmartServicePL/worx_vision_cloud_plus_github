@@ -25,6 +25,7 @@ from homeassistant.const import (
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
+from homeassistant.util import dt as dt_util
 
 from .const import (
     ATTR_RAW_PATH,
@@ -37,6 +38,7 @@ from .entity import WorxVisionEntity
 from .helpers import (
     MAX_STRING_STATE_LENGTH,
     get_dict_value,
+    next_schedule_start,
     raw_entity_path_map,
     raw_entity_values,
     raw_path_enabled_default,
@@ -232,7 +234,7 @@ def _first_map_zone(device):
     return {}
 
 
-def _area_mowed_today(device):
+def _area_mowed_total(device):
     value = _product_item(device, "area_mowed")
     try:
         return round(float(value), 2)
@@ -287,11 +289,23 @@ def _since_reset(device, total_key: str, reset_key: str) -> int | None:
 
 
 def _mowing_efficiency(device) -> float | None:
-    area = _area_mowed_today(device)
-    work_minutes = _as_float(_product_item(device, "mower_work_time"))
+    area = _area_mowed_total(device)
+    work_minutes = _as_float(_blades(device, "total_on"))
+    if work_minutes in (None, 0):
+        work_minutes = _as_float(_statistics(device, "worktime_blades_on"))
+    if work_minutes in (None, 0):
+        work_minutes = _as_float(_product_item(device, "mower_work_time"))
     if area is None or work_minutes in (None, 0):
         return None
     return round(area / (work_minutes / 60), 2)
+
+
+def _cloud_statistics_updated(device) -> datetime | None:
+    """Return when the cumulative Worx product statistics were fetched."""
+    value = getattr(device, "_worx_vision_product_item_updated_at", None)
+    if isinstance(value, datetime):
+        return value.astimezone(UTC)
+    return None
 
 
 def _last_update_age(device) -> int | None:
@@ -498,21 +512,6 @@ def _lawn_area(device):
     return round(area, 2) if area > 0 else None
 
 
-def _daily_progress(device):
-    area_mowed = _area_mowed_today(device)
-    lawn_area = _lawn_area(device)
-    if area_mowed is None or lawn_area in (None, 0):
-        return None
-    return round(max(0, min(100, area_mowed / lawn_area * 100)), 1)
-
-
-def _remaining_progress(device):
-    progress = _daily_progress(device)
-    if progress is None:
-        return None
-    return round(max(0, 100 - progress), 1)
-
-
 def _first_address_text(address: dict[str, Any], *keys: str) -> str | None:
     """Return the first non-empty text value from an address dict."""
     for key in keys:
@@ -693,38 +692,17 @@ STANDARD_SENSORS: tuple[WorxSensorDescription, ...] = (
         },
     ),
     WorxSensorDescription(
-        key="daily_progress",
-        translation_key="daily_progress",
-        native_unit_of_measurement=PERCENTAGE,
-        state_class=SensorStateClass.MEASUREMENT,
-        icon="mdi:progress-check",
-        value_fn=_daily_progress,
-        attrs_fn=lambda d: {
-            "area_mowed": _area_mowed_today(d),
-            "lawn_area": _lawn_area(d),
-        },
-    ),
-    WorxSensorDescription(
-        key="remaining_progress",
-        translation_key="remaining_progress",
-        native_unit_of_measurement=PERCENTAGE,
-        state_class=SensorStateClass.MEASUREMENT,
-        icon="mdi:progress-clock",
-        value_fn=_remaining_progress,
-        attrs_fn=lambda d: {
-            "daily_progress": _daily_progress(d),
-            "area_mowed": _area_mowed_today(d),
-            "lawn_area": _lawn_area(d),
-        },
-    ),
-    WorxSensorDescription(
-        key="area_mowed_today",
-        translation_key="area_mowed_today",
+        key="area_mowed_total",
+        translation_key="area_mowed_total",
         native_unit_of_measurement=UnitOfArea.SQUARE_METERS,
         device_class=SensorDeviceClass.AREA,
-        state_class=SensorStateClass.MEASUREMENT,
+        state_class=SensorStateClass.TOTAL_INCREASING,
         icon="mdi:grass",
-        value_fn=_area_mowed_today,
+        value_fn=_area_mowed_total,
+        attrs_fn=lambda d: {
+            "source": "worx_cloud_cumulative_counter",
+            "cloud_data_updated_at": _cloud_statistics_updated(d),
+        },
     ),
     WorxSensorDescription(
         key="lawn_area",
@@ -744,9 +722,19 @@ STANDARD_SENSORS: tuple[WorxSensorDescription, ...] = (
         icon="mdi:speedometer",
         value_fn=_mowing_efficiency,
         attrs_fn=lambda d: {
-            "area_mowed": _area_mowed_today(d),
-            "mower_work_time": _product_item(d, "mower_work_time"),
+            "area_mowed_total": _area_mowed_total(d),
+            "blade_runtime_total": _blades(d, "total_on")
+            or _statistics(d, "worktime_blades_on"),
+            "fallback_mower_work_time": _product_item(d, "mower_work_time"),
         },
+    ),
+    WorxSensorDescription(
+        key="cloud_statistics_updated",
+        translation_key="cloud_statistics_updated",
+        device_class=SensorDeviceClass.TIMESTAMP,
+        entity_category=EntityCategory.DIAGNOSTIC,
+        icon="mdi:cloud-clock-outline",
+        value_fn=_cloud_statistics_updated,
     ),
     WorxSensorDescription(
         key="rtk_map",
@@ -969,6 +957,24 @@ async def async_setup_entry(
             WorxVisionSensor(coordinator, entry, serial_number, description)
             for description in STANDARD_SENSORS
         )
+        entities.extend(
+            (
+                WorxNextScheduleSensor(coordinator, entry, serial_number),
+                WorxAreaMowedTodaySensor(coordinator, entry, serial_number),
+                WorxDailyProgressSensor(coordinator, entry, serial_number),
+                WorxRemainingProgressSensor(coordinator, entry, serial_number),
+                WorxEstimatedAreaMowedTodaySensor(
+                    coordinator,
+                    entry,
+                    serial_number,
+                ),
+                WorxEstimatedDailyProgressSensor(
+                    coordinator,
+                    entry,
+                    serial_number,
+                ),
+            )
+        )
         entities.append(WorxVisionAddressSensor(coordinator, entry, serial_number))
         entities.append(WorxScheduleSensor(coordinator, entry, serial_number))
 
@@ -1032,6 +1038,191 @@ class WorxVisionSensor(WorxVisionEntity, SensorEntity):
             return None
         attrs = self.entity_description.attrs_fn(self.device)
         return {key: value for key, value in (attrs or {}).items() if value is not None}
+
+
+class WorxNextScheduleSensor(WorxVisionEntity, SensorEntity):
+    """Timestamp of the next enabled weekly mowing slot."""
+
+    _attr_translation_key = "next_schedule"
+    _attr_icon = "mdi:calendar-arrow-right"
+    _attr_device_class = SensorDeviceClass.TIMESTAMP
+
+    def __init__(self, coordinator, entry, serial_number: str) -> None:
+        """Initialize the next-schedule sensor."""
+        super().__init__(coordinator, entry, serial_number, "next_schedule")
+
+    @property
+    def native_value(self) -> datetime | None:
+        """Return the next schedule start in the Home Assistant timezone."""
+        return next_schedule_start(self.device, dt_util.now())
+
+
+class WorxAreaMowedTodaySensor(WorxVisionEntity, SensorEntity):
+    """Area added to the cumulative cloud counter since local midnight."""
+
+    _attr_translation_key = "area_mowed_today"
+    _attr_icon = "mdi:grass"
+    _attr_device_class = SensorDeviceClass.AREA
+    _attr_native_unit_of_measurement = UnitOfArea.SQUARE_METERS
+    _attr_state_class = SensorStateClass.MEASUREMENT
+
+    def __init__(self, coordinator, entry, serial_number: str) -> None:
+        """Initialize the daily cloud area sensor."""
+        super().__init__(coordinator, entry, serial_number, "area_mowed_today")
+
+    @property
+    def native_value(self) -> float | None:
+        """Return today's cloud-counter delta."""
+        return self.coordinator.area_mowed_today(self._serial_number)
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Explain the source and baseline behind the daily value."""
+        return {
+            "source": "worx_cloud_cumulative_counter_delta",
+            **self.coordinator.daily_area_details(self._serial_number),
+            "cloud_data_updated_at": _cloud_statistics_updated(self.device),
+        }
+
+
+class WorxDailyProgressSensor(WorxVisionEntity, SensorEntity):
+    """Cloud-reported daily covered area as a percentage of lawn size."""
+
+    _attr_translation_key = "daily_progress"
+    _attr_icon = "mdi:progress-check"
+    _attr_native_unit_of_measurement = PERCENTAGE
+    _attr_state_class = SensorStateClass.MEASUREMENT
+
+    def __init__(self, coordinator, entry, serial_number: str) -> None:
+        """Initialize cloud daily progress."""
+        super().__init__(coordinator, entry, serial_number, "daily_progress")
+
+    def _progress(self) -> float | None:
+        """Calculate cloud daily progress."""
+        area = self.coordinator.area_mowed_today(self._serial_number)
+        lawn_area = _lawn_area(self.device)
+        if area is None or lawn_area in (None, 0):
+            return None
+        return round(max(0, min(100, area / lawn_area * 100)), 1)
+
+    @property
+    def native_value(self) -> float | None:
+        """Return today's delayed cloud progress."""
+        return self._progress()
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Return the values used by the progress calculation."""
+        return {
+            "source": "worx_cloud_cumulative_counter_delta",
+            "area_mowed_today": self.coordinator.area_mowed_today(
+                self._serial_number
+            ),
+            "lawn_area": _lawn_area(self.device),
+            "cloud_data_updated_at": _cloud_statistics_updated(self.device),
+        }
+
+
+class WorxRemainingProgressSensor(WorxDailyProgressSensor):
+    """Percentage not yet covered according to the delayed cloud counter."""
+
+    _attr_translation_key = "remaining_progress"
+    _attr_icon = "mdi:progress-clock"
+
+    def __init__(self, coordinator, entry, serial_number: str) -> None:
+        """Initialize cloud remaining progress."""
+        WorxVisionEntity.__init__(
+            self,
+            coordinator,
+            entry,
+            serial_number,
+            "remaining_progress",
+        )
+
+    @property
+    def native_value(self) -> float | None:
+        """Return the complement of cloud daily progress."""
+        progress = self._progress()
+        return None if progress is None else round(max(0, 100 - progress), 1)
+
+
+class WorxEstimatedAreaMowedTodaySensor(WorxVisionEntity, SensorEntity):
+    """Area estimated from locally observed blade-active time."""
+
+    _attr_translation_key = "estimated_area_mowed_today"
+    _attr_icon = "mdi:chart-bell-curve-cumulative"
+    _attr_device_class = SensorDeviceClass.AREA
+    _attr_native_unit_of_measurement = UnitOfArea.SQUARE_METERS
+    _attr_state_class = SensorStateClass.MEASUREMENT
+
+    def __init__(self, coordinator, entry, serial_number: str) -> None:
+        """Initialize estimated daily area."""
+        super().__init__(
+            coordinator,
+            entry,
+            serial_number,
+            "estimated_area_mowed_today",
+        )
+
+    def _estimated_area(self) -> float | None:
+        """Calculate daily covered area from observed mowing time."""
+        efficiency = _mowing_efficiency(self.device)
+        if efficiency is None:
+            return None
+        minutes = self.coordinator.mowing_minutes_today(self._serial_number)
+        return round(minutes / 60 * efficiency, 2)
+
+    @property
+    def native_value(self) -> float | None:
+        """Return locally estimated daily covered area."""
+        return self._estimated_area()
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Return the inputs used by the estimate."""
+        return {
+            "source": "local_blade_active_time_x_lifetime_efficiency",
+            "blade_active_minutes_today": self.coordinator.mowing_minutes_today(
+                self._serial_number
+            ),
+            "mowing_efficiency": _mowing_efficiency(self.device),
+        }
+
+
+class WorxEstimatedDailyProgressSensor(WorxEstimatedAreaMowedTodaySensor):
+    """Estimated daily area expressed as a percentage of lawn size."""
+
+    _attr_translation_key = "estimated_daily_progress"
+    _attr_icon = "mdi:progress-star"
+    _attr_device_class = None
+    _attr_native_unit_of_measurement = PERCENTAGE
+
+    def __init__(self, coordinator, entry, serial_number: str) -> None:
+        """Initialize estimated daily progress."""
+        WorxVisionEntity.__init__(
+            self,
+            coordinator,
+            entry,
+            serial_number,
+            "estimated_daily_progress",
+        )
+
+    @property
+    def native_value(self) -> float | None:
+        """Return locally estimated daily progress."""
+        area = self._estimated_area()
+        lawn_area = _lawn_area(self.device)
+        if area is None or lawn_area in (None, 0):
+            return None
+        return round(max(0, min(100, area / lawn_area * 100)), 1)
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Return the inputs used by the estimate."""
+        return {
+            **super().extra_state_attributes,
+            "lawn_area": _lawn_area(self.device),
+        }
 
 
 class WorxScheduleSensor(WorxVisionEntity, SensorEntity):

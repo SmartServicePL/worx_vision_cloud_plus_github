@@ -103,13 +103,28 @@
         "name": "Notifications push"
       },
       "daily_progress": {
-        "name": "Progression quotidienne"
+        "name": "Progression quotidienne (cloud)"
       },
       "remaining_progress": {
-        "name": "Reste à tondre"
+        "name": "Reste à tondre (cloud)"
       },
       "area_mowed_today": {
-        "name": "Surface tondue aujourd'hui"
+        "name": "Surface tondue aujourd'hui (cloud)"
+      },
+      "next_schedule": {
+        "name": "Prochaine programmation"
+      },
+      "area_mowed_total": {
+        "name": "Surface totale parcourue"
+      },
+      "estimated_area_mowed_today": {
+        "name": "Surface tondue estimée aujourd'hui"
+      },
+      "estimated_daily_progress": {
+        "name": "Progression quotidienne estimée"
+      },
+      "cloud_statistics_updated": {
+        "name": "Statistiques cloud actualisées"
       },
       "lawn_area": {
         "name": "Surface de la pelouse"

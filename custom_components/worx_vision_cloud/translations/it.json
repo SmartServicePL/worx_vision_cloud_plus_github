@@ -103,13 +103,28 @@
         "name": "Notifiche push"
       },
       "daily_progress": {
-        "name": "Avanzamento giornaliero"
+        "name": "Avanzamento giornaliero (cloud)"
       },
       "remaining_progress": {
-        "name": "Rimanente da tagliare"
+        "name": "Rimanente da tagliare (cloud)"
       },
       "area_mowed_today": {
-        "name": "Superficie tagliata oggi"
+        "name": "Superficie tagliata oggi (cloud)"
+      },
+      "next_schedule": {
+        "name": "Prossima programmazione"
+      },
+      "area_mowed_total": {
+        "name": "Superficie totale percorsa"
+      },
+      "estimated_area_mowed_today": {
+        "name": "Superficie stimata tagliata oggi"
+      },
+      "estimated_daily_progress": {
+        "name": "Avanzamento giornaliero stimato"
+      },
+      "cloud_statistics_updated": {
+        "name": "Statistiche cloud aggiornate"
       },
       "lawn_area": {
         "name": "Superficie del prato"

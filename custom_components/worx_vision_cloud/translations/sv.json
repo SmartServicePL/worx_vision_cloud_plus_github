@@ -103,13 +103,28 @@
         "name": "Push-aviseringar"
       },
       "daily_progress": {
-        "name": "Dagens förlopp"
+        "name": "Dagens förlopp (moln)"
       },
       "remaining_progress": {
-        "name": "Kvar att klippa"
+        "name": "Kvar att klippa (moln)"
       },
       "area_mowed_today": {
-        "name": "Klippt yta idag"
+        "name": "Klippt yta idag (moln)"
+      },
+      "next_schedule": {
+        "name": "Nästa schema"
+      },
+      "area_mowed_total": {
+        "name": "Total bearbetad yta"
+      },
+      "estimated_area_mowed_today": {
+        "name": "Uppskattad klippt yta idag"
+      },
+      "estimated_daily_progress": {
+        "name": "Uppskattat dagsförlopp"
+      },
+      "cloud_statistics_updated": {
+        "name": "Molnstatistik uppdaterad"
       },
       "lawn_area": {
         "name": "Gräsmattans yta"
