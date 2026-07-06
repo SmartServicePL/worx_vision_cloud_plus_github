@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 1.1.0 - 2026-07-06
+
 - Updated `pyworxcloud` from `6.3.6` to `6.4.1`.
 - Added German, French, Dutch, Spanish, Italian, Swedish, Norwegian and Danish
   translations while keeping Polish and English.

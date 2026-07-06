@@ -38,6 +38,26 @@ If this integration helps you, you can support Smart Service:
   and Danish translations.
 - Optional raw payload entities for debugging, disabled by default.
 
+## Languages
+
+Worx Vision Cloud PLUS includes these languages:
+
+- Polish (`pl`)
+- English (`en`)
+- German (`de`)
+- French (`fr`)
+- Dutch (`nl`)
+- Spanish (`es`)
+- Italian (`it`)
+- Swedish (`sv`)
+- Norwegian Bokmål (`nb`)
+- Danish (`da`)
+
+Entity names, status values and configuration options follow the language
+selected in Home Assistant. Schedule summaries, weekday labels and calendar
+events use the Home Assistant system language. English is used as the fallback
+when another language is selected.
+
 ## Installation With HACS
 
 1. Open HACS.

@@ -22,6 +22,7 @@ Main features:
 - blade runtime reset button
 - battery cycle reset button
 - daily progress and mowed area sensors when available
-- Polish and English translations
+- Polish, English, German, French, Dutch, Spanish, Italian, Swedish, Norwegian
+  Bokmål and Danish translations
 
 Integration prepared by **Smart Service**.
