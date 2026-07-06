@@ -48,14 +48,154 @@ NOISY_RAW_PATHS = {
     "schedules.slots.count",
 }
 
+SCHEDULE_DEFAULT_LANGUAGE = "en"
+
+# Schedule summaries are free-form states, so Home Assistant cannot translate
+# them through translations/*.json.
 SCHEDULE_DAY_LABELS = {
-    "monday": "Mon",
-    "tuesday": "Tue",
-    "wednesday": "Wed",
-    "thursday": "Thu",
-    "friday": "Fri",
-    "saturday": "Sat",
-    "sunday": "Sun",
+    "en": {
+        "monday": "Mon",
+        "tuesday": "Tue",
+        "wednesday": "Wed",
+        "thursday": "Thu",
+        "friday": "Fri",
+        "saturday": "Sat",
+        "sunday": "Sun",
+    },
+    "da": {
+        "monday": "man",
+        "tuesday": "tir",
+        "wednesday": "ons",
+        "thursday": "tor",
+        "friday": "fre",
+        "saturday": "lør",
+        "sunday": "søn",
+    },
+    "de": {
+        "monday": "Mo",
+        "tuesday": "Di",
+        "wednesday": "Mi",
+        "thursday": "Do",
+        "friday": "Fr",
+        "saturday": "Sa",
+        "sunday": "So",
+    },
+    "es": {
+        "monday": "lun",
+        "tuesday": "mar",
+        "wednesday": "mié",
+        "thursday": "jue",
+        "friday": "vie",
+        "saturday": "sáb",
+        "sunday": "dom",
+    },
+    "fr": {
+        "monday": "lun",
+        "tuesday": "mar",
+        "wednesday": "mer",
+        "thursday": "jeu",
+        "friday": "ven",
+        "saturday": "sam",
+        "sunday": "dim",
+    },
+    "it": {
+        "monday": "lun",
+        "tuesday": "mar",
+        "wednesday": "mer",
+        "thursday": "gio",
+        "friday": "ven",
+        "saturday": "sab",
+        "sunday": "dom",
+    },
+    "nl": {
+        "monday": "ma",
+        "tuesday": "di",
+        "wednesday": "wo",
+        "thursday": "do",
+        "friday": "vr",
+        "saturday": "za",
+        "sunday": "zo",
+    },
+    "no": {
+        "monday": "man",
+        "tuesday": "tir",
+        "wednesday": "ons",
+        "thursday": "tor",
+        "friday": "fre",
+        "saturday": "lør",
+        "sunday": "søn",
+    },
+    "pl": {
+        "monday": "pon",
+        "tuesday": "wt",
+        "wednesday": "śr",
+        "thursday": "czw",
+        "friday": "pt",
+        "saturday": "sob",
+        "sunday": "niedz",
+    },
+    "sv": {
+        "monday": "mån",
+        "tuesday": "tis",
+        "wednesday": "ons",
+        "thursday": "tor",
+        "friday": "fre",
+        "saturday": "lör",
+        "sunday": "sön",
+    },
+}
+
+SCHEDULE_TEXT_LABELS = {
+    "en": {
+        "none": "no active slots",
+        "count": "{count} active slots",
+        "edge": "+ edge",
+    },
+    "da": {
+        "none": "ingen aktive tidsrum",
+        "count": "{count} aktive tidsrum",
+        "edge": "+ kant",
+    },
+    "de": {
+        "none": "keine aktiven Zeitfenster",
+        "count": "{count} aktive Zeitfenster",
+        "edge": "+ Kante",
+    },
+    "es": {
+        "none": "sin franjas activas",
+        "count": "{count} franjas activas",
+        "edge": "+ borde",
+    },
+    "fr": {
+        "none": "aucun créneau actif",
+        "count": "{count} créneaux actifs",
+        "edge": "+ bordure",
+    },
+    "it": {
+        "none": "nessuna fascia attiva",
+        "count": "{count} fasce attive",
+        "edge": "+ bordo",
+    },
+    "nl": {
+        "none": "geen actieve tijdvakken",
+        "count": "{count} actieve tijdvakken",
+        "edge": "+ rand",
+    },
+    "no": {
+        "none": "ingen aktive tidsvinduer",
+        "count": "{count} aktive tidsvinduer",
+        "edge": "+ kant",
+    },
+    "pl": {
+        "none": "brak aktywnych slotów",
+        "count": "{count} aktywnych slotów",
+        "edge": "+ krawędź",
+    },
+    "sv": {
+        "none": "inga aktiva tidsfönster",
+        "count": "{count} aktiva tidsfönster",
+        "edge": "+ kant",
+    },
 }
 
 SCHEDULE_DAY_INDEX = {
@@ -67,6 +207,14 @@ SCHEDULE_DAY_INDEX = {
     "saturday": 5,
     "sunday": 6,
 }
+
+
+def schedule_language(language: Any) -> str:
+    """Return a supported schedule language code."""
+    code = str(language or "").lower().replace("_", "-").split("-")[0]
+    if code in {"nb", "nn"}:
+        code = "no"
+    return code if code in SCHEDULE_DAY_LABELS else SCHEDULE_DEFAULT_LANGUAGE
 
 
 def get_dict_value(obj: Any, key: str, default: Any = None) -> Any:
@@ -368,17 +516,20 @@ def schedule_day_index(day: Any) -> int | None:
     return SCHEDULE_DAY_INDEX.get(str(day).lower())
 
 
-def schedule_day_label(day: Any) -> str:
-    """Return a short human label for a schedule day."""
+def schedule_day_label(day: Any, language: str = SCHEDULE_DEFAULT_LANGUAGE) -> str:
+    """Return a short localized label for a schedule day."""
     if day is None:
         return ""
-    day_text = str(day).lower()
-    return SCHEDULE_DAY_LABELS.get(day_text, str(day))
+    labels = SCHEDULE_DAY_LABELS[schedule_language(language)]
+    return labels.get(str(day).lower(), str(day))
 
 
-def schedule_slot_summary(slot: Any) -> str:
-    """Return one compact schedule slot line."""
-    day = schedule_day_label(get_dict_value(slot, "day"))
+def schedule_slot_summary(
+    slot: Any, language: str = SCHEDULE_DEFAULT_LANGUAGE
+) -> str:
+    """Return one compact localized schedule slot line."""
+    lang = schedule_language(language)
+    day = schedule_day_label(get_dict_value(slot, "day"), lang)
     start = get_dict_value(slot, "start")
     end = get_dict_value(slot, "end")
     duration = get_dict_value(slot, "duration_extended")
@@ -393,23 +544,28 @@ def schedule_slot_summary(slot: Any) -> str:
         text = day or "slot"
 
     if get_dict_value(slot, "boundary"):
-        text = f"{text} + edge"
+        text = f"{text} {SCHEDULE_TEXT_LABELS[lang]['edge']}"
     return text
 
 
-def schedule_summary(device: Any) -> str | None:
-    """Return a compact schedule summary for Home Assistant state."""
+def schedule_summary(
+    device: Any, language: str = SCHEDULE_DEFAULT_LANGUAGE
+) -> str | None:
+    """Return a compact localized schedule summary for Home Assistant."""
+    lang = schedule_language(language)
     slots = schedule_slots(device)
     if not slots:
-        return "no active slots"
+        return SCHEDULE_TEXT_LABELS[lang]["none"]
 
-    summary = ", ".join(schedule_slot_summary(slot) for slot in slots)
+    summary = ", ".join(schedule_slot_summary(slot, lang) for slot in slots)
     if len(summary) <= MAX_STRING_STATE_LENGTH:
         return summary
-    return f"{len(slots)} active slots"
+    return SCHEDULE_TEXT_LABELS[lang]["count"].format(count=len(slots))
 
 
-def schedule_attributes(device: Any) -> dict[str, Any]:
+def schedule_attributes(
+    device: Any, language: str = SCHEDULE_DEFAULT_LANGUAGE
+) -> dict[str, Any]:
     """Return structured schedule data for cards and templates."""
     schedules = getattr(device, "schedules", {}) or {}
     slots = schedule_slots(device)
@@ -420,7 +576,9 @@ def schedule_attributes(device: Any) -> dict[str, Any]:
         "slots": [
             {
                 "day": get_dict_value(slot, "day"),
-                "day_label": schedule_day_label(get_dict_value(slot, "day")),
+                "day_label": schedule_day_label(
+                    get_dict_value(slot, "day"), language
+                ),
                 "start": get_dict_value(slot, "start"),
                 "end": get_dict_value(slot, "end"),
                 "duration": get_dict_value(slot, "duration"),
