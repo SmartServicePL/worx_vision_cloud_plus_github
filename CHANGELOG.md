@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- Fixed the current-zone sensor for RTK/Vision mowers by resolving the live RTK
+  position against the mower map zones when the legacy Worx zone field is empty.
+
 ## 1.2.0 - 2026-07-06
 
 - Added a next-schedule timestamp sensor with timezone-aware fallback
