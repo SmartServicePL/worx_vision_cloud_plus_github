@@ -482,6 +482,20 @@ class WorxVisionCoordinator(DataUpdateCoordinator[dict[str, DeviceHandler]]):
         self._update_cached_cut_over_border(serial_number, enabled)
         await self.async_request_device_update(serial_number)
 
+    async def async_set_border_distance(
+        self, serial_number: str, distance_mm: int
+    ) -> None:
+        """Persist Vision border-cut distance in millimeters."""
+        set_border_distance = getattr(self.cloud, "set_border_distance", None)
+        if set_border_distance is None:
+            raise HomeAssistantError(
+                "The installed pyworxcloud version does not support border distance updates"
+            )
+
+        await set_border_distance(serial_number, int(distance_mm))
+        self._update_cached_border_distance(serial_number, int(distance_mm))
+        await self.async_request_device_update(serial_number)
+
     async def _async_send_cut_over_border(
         self, serial_number: str, enabled: bool
     ) -> None:
@@ -519,6 +533,50 @@ class WorxVisionCoordinator(DataUpdateCoordinator[dict[str, DeviceHandler]]):
             cut = raw_cfg.setdefault("cut", {})
             if isinstance(cut, dict):
                 cut["ob"] = 1 if enabled else 0
+            for zone_cut in self._raw_zone_cutting_dicts(raw_cfg):
+                zone_cut["ob"] = 1 if enabled else 0
+
+    def _update_cached_border_distance(
+        self, serial_number: str, distance_mm: int
+    ) -> None:
+        """Update cached border distance so the number changes immediately."""
+        device = (self.data or {}).get(serial_number)
+        if device is None:
+            return
+
+        raw_cfg = getattr(device, "raw_cfg", None)
+        if isinstance(raw_cfg, dict):
+            cut = raw_cfg.setdefault("cut", {})
+            if isinstance(cut, dict):
+                cut["bd"] = distance_mm
+                cut["co"] = distance_mm
+            for zone_cut in self._raw_zone_cutting_dicts(raw_cfg):
+                zone_cut["bd"] = distance_mm
+                zone_cut["co"] = distance_mm
+
+    @staticmethod
+    def _raw_zone_cutting_dicts(raw_cfg: dict[str, Any]) -> list[dict[str, Any]]:
+        """Return mutable zone cutting dictionaries from known protocol 1 paths."""
+        result: list[dict[str, Any]] = []
+        for zone_container in (("rtk", "zs"), ("mz", "s")):
+            current: Any = raw_cfg
+            for key in zone_container:
+                if not isinstance(current, dict):
+                    current = None
+                    break
+                current = current.get(key)
+            if not isinstance(current, list | tuple):
+                continue
+            for zone in current:
+                if not isinstance(zone, dict):
+                    continue
+                cfg = zone.setdefault("cfg", {})
+                if not isinstance(cfg, dict):
+                    continue
+                cut = cfg.setdefault("cut", {})
+                if isinstance(cut, dict):
+                    result.append(cut)
+        return result
 
     async def async_get_rtk_map(
         self, map_id: str | None, *, force: bool = False

@@ -241,6 +241,21 @@
       "smart_edge_cut": {
         "name": "Coupe de bordure intelligente"
       },
+      "pin_setting_supported": {
+        "name": "Réglage du PIN pris en charge"
+      },
+      "vision_disable_supported": {
+        "name": "Désactivation de Vision prise en charge"
+      },
+      "random_pattern_supported": {
+        "name": "Motif de tonte aléatoire pris en charge"
+      },
+      "map_training_supported": {
+        "name": "Apprentissage de carte pris en charge"
+      },
+      "diagnostic_upload_supported": {
+        "name": "Envoi de diagnostic pris en charge"
+      },
       "save_hedgehogs": {
         "name": "Sauvons les hérissons"
       }
@@ -294,6 +309,9 @@
       },
       "lawn_perimeter": {
         "name": "Périmètre de la pelouse"
+      },
+      "border_distance": {
+        "name": "Distance de bordure"
       },
       "one_time_mowing_runtime": {
         "name": "Durée de la tonte unique"

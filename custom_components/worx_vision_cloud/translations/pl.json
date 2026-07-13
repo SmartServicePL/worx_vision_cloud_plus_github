@@ -241,6 +241,21 @@
       "smart_edge_cut": {
         "name": "Inteligentne cięcie krawędziowe"
       },
+      "pin_setting_supported": {
+        "name": "Obsługa ustawiania PIN"
+      },
+      "vision_disable_supported": {
+        "name": "Obsługa wyłączania Vision"
+      },
+      "random_pattern_supported": {
+        "name": "Obsługa losowego wzoru koszenia"
+      },
+      "map_training_supported": {
+        "name": "Obsługa treningu mapy"
+      },
+      "diagnostic_upload_supported": {
+        "name": "Obsługa wysyłania diagnostyki"
+      },
       "save_hedgehogs": {
         "name": "Ochrona jeży"
       }
@@ -294,6 +309,9 @@
       },
       "lawn_perimeter": {
         "name": "Obwód trawnika"
+      },
+      "border_distance": {
+        "name": "Dystans krawędzi"
       },
       "one_time_mowing_runtime": {
         "name": "Czas koszenia jednorazowego"

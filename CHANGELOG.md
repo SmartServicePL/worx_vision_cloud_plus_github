@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+## 1.3.0 - 2026-07-13
+
+- Updated `pyworxcloud` from `6.4.1` to `6.4.2` for the latest RTK position
+  fallback and time-extension handling.
+- Added a Vision edge-distance number entity and improved Smart edge cutting
+  state detection from protocol 1 RTK zone cut settings.
+- Added diagnostic binary sensors for PIN setting support, Vision disable
+  support, random map pattern support, map training support and diagnostic
+  upload support.
 - Fixed the current-zone sensor for RTK/Vision mowers by resolving the live RTK
   position against the mower map zones when the legacy Worx zone field is empty.
 

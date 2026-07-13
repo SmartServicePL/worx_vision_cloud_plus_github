@@ -8,8 +8,8 @@ Main features:
 
 - native `lawn_mower` entity
 - native firmware update entity
-- useful mower sensors and binary sensors
-- rain delay, time-extension, lawn area and lawn perimeter number entities
+- useful mower sensors, binary sensors and firmware-capability diagnostics
+- rain delay, time-extension, lawn area, lawn perimeter and Vision edge-distance number entities
 - mower lock, firmware auto-update and schedule switches
 - mowing schedule summary, next start sensor and calendar
 - RTK map camera

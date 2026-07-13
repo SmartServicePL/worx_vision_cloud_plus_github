@@ -241,6 +241,21 @@
       "smart_edge_cut": {
         "name": "Smart edge cutting"
       },
+      "pin_setting_supported": {
+        "name": "PIN setting supported"
+      },
+      "vision_disable_supported": {
+        "name": "Vision disable supported"
+      },
+      "random_pattern_supported": {
+        "name": "Random mowing pattern supported"
+      },
+      "map_training_supported": {
+        "name": "Map training supported"
+      },
+      "diagnostic_upload_supported": {
+        "name": "Diagnostic upload supported"
+      },
       "save_hedgehogs": {
         "name": "Save the hedgehogs"
       }
@@ -294,6 +309,9 @@
       },
       "lawn_perimeter": {
         "name": "Lawn perimeter"
+      },
+      "border_distance": {
+        "name": "Border distance"
       },
       "one_time_mowing_runtime": {
         "name": "One-time mowing runtime"

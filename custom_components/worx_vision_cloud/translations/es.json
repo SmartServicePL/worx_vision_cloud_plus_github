@@ -241,6 +241,21 @@
       "smart_edge_cut": {
         "name": "Corte de bordes inteligente"
       },
+      "pin_setting_supported": {
+        "name": "Configuración de PIN compatible"
+      },
+      "vision_disable_supported": {
+        "name": "Desactivación de Vision compatible"
+      },
+      "random_pattern_supported": {
+        "name": "Patrón de corte aleatorio compatible"
+      },
+      "map_training_supported": {
+        "name": "Entrenamiento de mapa compatible"
+      },
+      "diagnostic_upload_supported": {
+        "name": "Carga de diagnóstico compatible"
+      },
       "save_hedgehogs": {
         "name": "Modo erizos"
       }
@@ -294,6 +309,9 @@
       },
       "lawn_perimeter": {
         "name": "Perímetro del césped"
+      },
+      "border_distance": {
+        "name": "Distancia del borde"
       },
       "one_time_mowing_runtime": {
         "name": "Duración del corte puntual"

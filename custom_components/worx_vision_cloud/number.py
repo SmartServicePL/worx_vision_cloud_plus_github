@@ -17,7 +17,9 @@ from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
 from .const import DOMAIN
 from .entity import WorxVisionEntity
-from .helpers import get_dict_value
+from .helpers import get_dict_value, get_nested_value
+
+BORDER_DISTANCE_VALUES_MM = (50, 100, 150, 200)
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -57,6 +59,24 @@ def _product_item(device, key, default=None):
 def _rtk_map_data(device) -> dict[str, Any]:
     value = getattr(device, "_worx_vision_rtk_map", {}) or {}
     return value if isinstance(value, dict) else {}
+
+
+def _raw_cfg(device) -> dict[str, Any]:
+    value = getattr(device, "raw_cfg", {}) or {}
+    return value if isinstance(value, dict) else {}
+
+
+def _first_raw_zone_cutting(device) -> dict[str, Any]:
+    raw_cfg = _raw_cfg(device)
+    for zone_path in (("rtk", "zs"), ("mz", "s")):
+        zones = get_nested_value(raw_cfg, *zone_path, default=[]) or []
+        if not isinstance(zones, list | tuple):
+            continue
+        for zone in zones:
+            cutting = get_nested_value(zone, "cfg", "cut", default={}) or {}
+            if isinstance(cutting, dict) and cutting:
+                return cutting
+    return {}
 
 
 def _first_map_zone(device) -> dict[str, Any]:
@@ -109,12 +129,30 @@ def _has_time_extension(device) -> bool:
     return _is_online(device) and _schedule_value(device, "time_extension") is not None
 
 
+def _border_distance(device) -> float | None:
+    """Return configured Vision border-cut distance in millimeters."""
+    zone_cutting = _first_raw_zone_cutting(device)
+    candidates = (
+        get_nested_value(_raw_cfg(device), "cut", "bd"),
+        get_nested_value(_raw_cfg(device), "cut", "co"),
+        get_dict_value(zone_cutting, "bd"),
+        get_dict_value(zone_cutting, "co"),
+        _product_item(device, "border_distance"),
+        _product_item(device, "border_cut_distance"),
+    )
+    for candidate in candidates:
+        value = _as_float(candidate)
+        if value is not None and value > 0:
+            return value
+    return None
+
+
 async def _set_rain_delay(coordinator, serial_number: str, value: float) -> None:
     await coordinator.async_set_rain_delay(serial_number, round(value))
 
 
 async def _set_time_extension(coordinator, serial_number: str, value: float) -> None:
-    await coordinator.async_set_time_extension(serial_number, round(value / 10) * 10)
+    await coordinator.async_set_time_extension(serial_number, round(value))
 
 
 async def _set_lawn_area(coordinator, serial_number: str, value: float) -> None:
@@ -123,6 +161,14 @@ async def _set_lawn_area(coordinator, serial_number: str, value: float) -> None:
 
 async def _set_lawn_perimeter(coordinator, serial_number: str, value: float) -> None:
     await coordinator.async_set_lawn_perimeter(serial_number, round(value))
+
+
+async def _set_border_distance(coordinator, serial_number: str, value: float) -> None:
+    closest_value = min(
+        BORDER_DISTANCE_VALUES_MM,
+        key=lambda allowed: abs(allowed - float(value)),
+    )
+    await coordinator.async_set_border_distance(serial_number, closest_value)
 
 
 NUMBERS: tuple[WorxNumberDescription, ...] = (
@@ -153,7 +199,7 @@ NUMBERS: tuple[WorxNumberDescription, ...] = (
         entity_registry_enabled_default=False,
         native_min_value=-100,
         native_max_value=100,
-        native_step=10,
+        native_step=1,
         native_unit_of_measurement=PERCENTAGE,
         mode=NumberMode.BOX,
         value_fn=lambda d: _as_float(_schedule_value(d, "time_extension")),
@@ -202,6 +248,32 @@ NUMBERS: tuple[WorxNumberDescription, ...] = (
             "api_method": "pyworxcloud.set_lawn_perimeter",
             "product_item_value": _product_item(d, "lawn_perimeter"),
             "map_zone_value": get_dict_value(_first_map_zone(d), "perimeter"),
+        },
+    ),
+    WorxNumberDescription(
+        key="border_distance",
+        translation_key="border_distance",
+        icon="mdi:border-outside",
+        entity_category=EntityCategory.CONFIG,
+        native_min_value=50,
+        native_max_value=200,
+        native_step=50,
+        native_unit_of_measurement="mm",
+        mode=NumberMode.BOX,
+        value_fn=_border_distance,
+        set_fn=_set_border_distance,
+        available_fn=lambda d: _is_online(d) and _has_capability(d, "border_cut"),
+        attrs_fn=lambda d: {
+            "api_method": "pyworxcloud.set_border_distance",
+            "allowed_values_mm": list(BORDER_DISTANCE_VALUES_MM),
+            "raw_top_level_border_distance": get_nested_value(
+                _raw_cfg(d), "cut", "bd"
+            ),
+            "raw_top_level_cut_offset": get_nested_value(_raw_cfg(d), "cut", "co"),
+            "raw_zone_border_distance": get_dict_value(
+                _first_raw_zone_cutting(d), "bd"
+            ),
+            "raw_zone_cut_offset": get_dict_value(_first_raw_zone_cutting(d), "co"),
         },
     ),
 )

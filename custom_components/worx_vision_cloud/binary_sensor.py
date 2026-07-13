@@ -24,6 +24,7 @@ from .const import (
 from .entity import WorxVisionEntity
 from .helpers import (
     get_dict_value,
+    get_nested_value,
     raw_entity_path_map,
     raw_entity_values,
     raw_path_enabled_default,
@@ -60,6 +61,17 @@ def _product_item(device) -> dict[str, Any]:
     return value if isinstance(value, dict) else {}
 
 
+def _capabilities(device) -> list[str]:
+    """Return API capability strings from the product item."""
+    value = get_dict_value(_product_item(device), "capabilities", []) or []
+    return list(value) if isinstance(value, list | tuple) else []
+
+
+def _has_capability(device, capability: str) -> bool:
+    """Return true when the mower reports one API capability."""
+    return capability in _capabilities(device)
+
+
 def _as_bool(value: Any) -> bool | None:
     """Return a bool from common API bool/int/string values."""
     if isinstance(value, bool):
@@ -81,6 +93,26 @@ def _rtk_map_data(device) -> dict[str, Any]:
     return value if isinstance(value, dict) else {}
 
 
+def _raw_cfg(device) -> dict[str, Any]:
+    """Return the latest raw mower config payload."""
+    value = getattr(device, "raw_cfg", {}) or {}
+    return value if isinstance(value, dict) else {}
+
+
+def _first_raw_zone_cutting(device) -> dict[str, Any]:
+    """Return the first zone cutting config from known protocol 1 locations."""
+    raw_cfg = _raw_cfg(device)
+    for zone_path in (("rtk", "zs"), ("mz", "s")):
+        zones = get_nested_value(raw_cfg, *zone_path, default=[]) or []
+        if not isinstance(zones, list | tuple):
+            continue
+        for zone in zones:
+            cutting = get_nested_value(zone, "cfg", "cut", default={}) or {}
+            if isinstance(cutting, dict) and cutting:
+                return cutting
+    return {}
+
+
 def _first_map_zone_metadata(device) -> dict[str, Any]:
     """Return metadata from the first RTK map boundary zone."""
     layers = get_dict_value(_rtk_map_data(device), "layers", {}) or {}
@@ -96,6 +128,14 @@ def _first_map_zone_metadata(device) -> dict[str, Any]:
 
 def _smart_edge_cut_enabled(device) -> bool | None:
     """Return the Vision map setting that allows cutting over the border."""
+    value = _as_bool(get_nested_value(_raw_cfg(device), "cut", "ob"))
+    if value is not None:
+        return value
+
+    value = _as_bool(get_dict_value(_first_raw_zone_cutting(device), "ob"))
+    if value is not None:
+        return value
+
     value = get_dict_value(_first_map_zone_metadata(device), "cut_over_border")
     return value if isinstance(value, bool) else None
 
@@ -103,15 +143,22 @@ def _smart_edge_cut_enabled(device) -> bool | None:
 def _smart_edge_cut_attributes(device) -> dict[str, Any]:
     """Return map metadata related to intelligent edge cutting."""
     metadata = _first_map_zone_metadata(device)
+    raw_zone_cut = _first_raw_zone_cutting(device)
     product_item = _product_item(device)
     capabilities = get_dict_value(product_item, "capabilities", []) or []
     if not isinstance(capabilities, list | tuple):
         capabilities = []
 
     return {
-        "api_field": "layers.boundaries[].zones[].metadata.cut_over_border",
+        "api_field": "cfg.cut.ob / cfg.rtk.zs[].cfg.cut.ob / cfg.mz.s[].cfg.cut.ob",
         "capability_border_cut": "border_cut" in capabilities,
         "capability_pause_over_border": "pause_over_border" in capabilities,
+        "raw_top_level_cut_over_border": get_nested_value(
+            _raw_cfg(device), "cut", "ob"
+        ),
+        "raw_zone_cut_over_border": get_dict_value(raw_zone_cut, "ob"),
+        "raw_zone_border_distance": get_dict_value(raw_zone_cut, "bd"),
+        "raw_zone_cut_offset": get_dict_value(raw_zone_cut, "co"),
         "cut_type": get_dict_value(metadata, "cut_type"),
         "cut_direction": get_dict_value(metadata, "cut_direction"),
         "pattern_width": get_dict_value(metadata, "pattern_width"),
@@ -262,6 +309,72 @@ BINARY_SENSORS: tuple[WorxBinarySensorDescription, ...] = (
         entity_category=EntityCategory.DIAGNOSTIC,
         value_fn=_smart_edge_cut_enabled,
         attrs_fn=_smart_edge_cut_attributes,
+    ),
+    WorxBinarySensorDescription(
+        key="pin_setting_supported",
+        translation_key="pin_setting_supported",
+        icon="mdi:dialpad",
+        entity_category=EntityCategory.DIAGNOSTIC,
+        value_fn=lambda d: _has_capability(d, "set_pin"),
+        attrs_fn=lambda d: {
+            "capability": "set_pin",
+            "auto_lock_supported": _has_capability(d, "auto_lock"),
+            "note": (
+                "PIN status only; pyworxcloud does not expose a safe set-pin "
+                "method."
+            ),
+        },
+    ),
+    WorxBinarySensorDescription(
+        key="vision_disable_supported",
+        translation_key="vision_disable_supported",
+        icon="mdi:eye-off-outline",
+        entity_category=EntityCategory.DIAGNOSTIC,
+        value_fn=lambda d: _has_capability(d, "disable_vision"),
+        attrs_fn=lambda d: {
+            "capability": "disable_vision",
+            "vision_supported": _has_capability(d, "vision"),
+        },
+    ),
+    WorxBinarySensorDescription(
+        key="random_pattern_supported",
+        translation_key="random_pattern_supported",
+        icon="mdi:shuffle-variant",
+        entity_category=EntityCategory.DIAGNOSTIC,
+        value_fn=lambda d: _has_capability(d, "maps_random_pattern"),
+        attrs_fn=lambda d: {
+            "capability": "maps_random_pattern",
+            "maps_supported": _has_capability(d, "maps"),
+        },
+    ),
+    WorxBinarySensorDescription(
+        key="map_training_supported",
+        translation_key="map_training_supported",
+        icon="mdi:map-marker-path",
+        entity_category=EntityCategory.DIAGNOSTIC,
+        value_fn=lambda d: _has_capability(d, "maps_training")
+        or _has_capability(d, "maps_training_zones"),
+        attrs_fn=lambda d: {
+            "capability_maps_training": _has_capability(d, "maps_training"),
+            "capability_maps_training_zones": _has_capability(
+                d, "maps_training_zones"
+            ),
+            "api_method": "pyworxcloud.zonetraining",
+        },
+    ),
+    WorxBinarySensorDescription(
+        key="diagnostic_upload_supported",
+        translation_key="diagnostic_upload_supported",
+        icon="mdi:cloud-upload-outline",
+        entity_category=EntityCategory.DIAGNOSTIC,
+        value_fn=lambda d: _has_capability(d, "diagnostic_upload_v2"),
+        attrs_fn=lambda d: {
+            "capability": "diagnostic_upload_v2",
+            "note": (
+                "Capability only; pyworxcloud does not expose a diagnostic "
+                "upload method."
+            ),
+        },
     ),
     WorxBinarySensorDescription(
         key="save_hedgehogs",

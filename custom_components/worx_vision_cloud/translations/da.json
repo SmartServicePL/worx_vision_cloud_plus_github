@@ -241,6 +241,21 @@
       "smart_edge_cut": {
         "name": "Smart kantklipning"
       },
+      "pin_setting_supported": {
+        "name": "PIN-indstilling understøttet"
+      },
+      "vision_disable_supported": {
+        "name": "Deaktivering af Vision understøttet"
+      },
+      "random_pattern_supported": {
+        "name": "Tilfældigt klippemønster understøttet"
+      },
+      "map_training_supported": {
+        "name": "Korttræning understøttet"
+      },
+      "diagnostic_upload_supported": {
+        "name": "Diagnostikupload understøttet"
+      },
       "save_hedgehogs": {
         "name": "Red pindsvinene"
       }
@@ -294,6 +309,9 @@
       },
       "lawn_perimeter": {
         "name": "Plænens omkreds"
+      },
+      "border_distance": {
+        "name": "Kantafstand"
       },
       "one_time_mowing_runtime": {
         "name": "Varighed af engangsslåning"

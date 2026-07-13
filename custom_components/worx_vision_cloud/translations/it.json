@@ -241,6 +241,21 @@
       "smart_edge_cut": {
         "name": "Taglio bordi intelligente"
       },
+      "pin_setting_supported": {
+        "name": "Impostazione PIN supportata"
+      },
+      "vision_disable_supported": {
+        "name": "Disattivazione Vision supportata"
+      },
+      "random_pattern_supported": {
+        "name": "Schema di taglio casuale supportato"
+      },
+      "map_training_supported": {
+        "name": "Addestramento mappa supportato"
+      },
+      "diagnostic_upload_supported": {
+        "name": "Caricamento diagnostica supportato"
+      },
       "save_hedgehogs": {
         "name": "Salva i ricci"
       }
@@ -294,6 +309,9 @@
       },
       "lawn_perimeter": {
         "name": "Perimetro del prato"
+      },
+      "border_distance": {
+        "name": "Distanza bordo"
       },
       "one_time_mowing_runtime": {
         "name": "Durata taglio singolo"

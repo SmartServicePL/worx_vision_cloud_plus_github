@@ -241,6 +241,21 @@
       "smart_edge_cut": {
         "name": "Smart kantklippning"
       },
+      "pin_setting_supported": {
+        "name": "PIN-inställning stöds"
+      },
+      "vision_disable_supported": {
+        "name": "Avaktivering av Vision stöds"
+      },
+      "random_pattern_supported": {
+        "name": "Slumpmässigt klippmönster stöds"
+      },
+      "map_training_supported": {
+        "name": "Kartträning stöds"
+      },
+      "diagnostic_upload_supported": {
+        "name": "Diagnostikuppladdning stöds"
+      },
       "save_hedgehogs": {
         "name": "Rädda igelkottarna"
       }
@@ -294,6 +309,9 @@
       },
       "lawn_perimeter": {
         "name": "Gräsmattans omkrets"
+      },
+      "border_distance": {
+        "name": "Kantavstånd"
       },
       "one_time_mowing_runtime": {
         "name": "Varaktighet för engångsklippning"

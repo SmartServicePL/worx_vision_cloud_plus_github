@@ -23,15 +23,15 @@ If this integration helps you, you can support Smart Service:
 - One-time mowing controls with runtime, edge cutting and optional RTK zone selection.
 - On-demand edge cutting button.
 - Native firmware `update` entity with OTA install support when Worx exposes it.
-- Rain delay, schedule time-extension, lawn area and lawn perimeter number entities.
+- Rain delay, schedule time-extension, lawn area, lawn perimeter and Vision edge-distance number entities.
 - Switches for firmware auto update, mower lock and native schedule.
 - Battery, status, error and connectivity sensors.
-- Useful maintenance, cloud/MQTT diagnostic and mowing-readiness sensors.
+- Useful maintenance, cloud/MQTT, firmware-capability diagnostic and mowing-readiness sensors.
 - Schedule summary, next-schedule timestamp and Home Assistant calendar entity.
 - RTK map camera rendered from the Worx private map API with a recent RTK trail overlay.
 - RTK robot position as a `device_tracker`.
 - Optional RTK address sensor using OpenStreetMap Nominatim reverse geocoding, disabled by default.
-- Switches for Smart edge cutting, Save the hedgehogs and schedule edge procedure.
+- Switches for Smart edge cutting and Save the hedgehogs.
 - Separate cloud and locally estimated daily mowing statistics, plus cumulative
   covered area, lawn area and efficiency sensors.
 - Separate smart mowing automation blueprint repository.
@@ -107,9 +107,9 @@ The exact entity list depends on what your mower reports. Typical entities inclu
 - `camera` RTK map
 - `device_tracker` RTK robot position
 - `sensor` battery, status, error, readiness, cloud connection, RSSI, schedule, next schedule, rain delay, RTK map, RTK trail, cloud and estimated daily progress, today and total covered area, runtime, efficiency and maintenance values
-- `binary_sensor` online, IoT/MQTT registration, locked, rain, party mode and pause mode
-- `switch` firmware auto update, mower lock, native schedule, Smart edge cutting, Save the hedgehogs and schedule edge procedure
-- `number` rain delay, schedule time extension, lawn area and lawn perimeter
+- `binary_sensor` online, IoT/MQTT registration, locked, rain, party mode, pause mode and firmware capability diagnostics
+- `switch` firmware auto update, mower lock, native schedule, Smart edge cutting and Save the hedgehogs
+- `number` rain delay, schedule time extension, lawn area, lawn perimeter and Vision edge distance
 - `update` firmware version, release notes and OTA install when supported
 
 See [docs/entities.md](docs/entities.md) for a more detailed list.
