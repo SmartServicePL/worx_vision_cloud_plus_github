@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## 1.3.1 - 2026-07-19
+
+- Reconnected the Worx MQTT session before mower commands when the cloud connection is stale.
+- Made the post-command device refresh best effort, so an accepted edge-cut or one-time mowing command is not reported as failed only because the immediate refresh timed out.
+- Improved reliability of the smart mowing edge-first automation flow after recent Worx Cloud / mower firmware changes.
+
 ## 1.3.0 - 2026-07-13
 
 - Updated `pyworxcloud` from `6.4.1` to `6.4.2` for the latest RTK position

@@ -127,7 +127,7 @@ Starts one one-time mowing run.
 
 - `entity_id` - mower entity.
 - `runtime` - mowing time in minutes, from `0` to `120`. Use `0` with `edge_cut: true` for an edge-only run; on Vision Cloud this is sent as the dedicated edge-cut command.
-- `edge_cut` - edge cutting flag. For the most reliable "normal mowing plus edges" flow, start normal mowing first and then call this service again with `runtime: 0` and `edge_cut: true`. The smart mowing blueprint uses that two-step flow.
+- `edge_cut` - edge cutting flag. Use `runtime: 0` with `edge_cut: true` for a dedicated edge-only run on Vision Cloud. The smart mowing blueprint starts edge cutting first, waits for a confirmed dock return, and then starts normal one-time mowing.
 - `zones` - optional RTK zone ID list, for example `[1, 2]`. Leave empty for default/all-zone mowing.
 
 Example:

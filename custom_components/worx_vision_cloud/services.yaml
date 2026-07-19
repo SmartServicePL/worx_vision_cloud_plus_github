@@ -1,6 +1,6 @@
 start_one_time_mowing:
   name: Uruchom koszenie jednorazowe
-  description: Uruchamia jednorazowe koszenie z wybranym czasem pracy, opcjonalnym koszeniem krawedzi i opcjonalna lista stref RTK.
+  description: Uruchamia jednorazowe koszenie. Dla Vision / RTK czas jest technicznym limitem, a dla starszych robotow z przewodem oznacza czas pracy. Runtime 0 z koszeniem krawedzi uruchamia tylko krawedzie.
   fields:
     entity_id:
       name: Kosiarka
@@ -11,7 +11,7 @@ start_one_time_mowing:
           domain: lawn_mower
     runtime:
       name: Czas koszenia
-      description: Czas koszenia jednorazowego w minutach. Ustaw 0 z wlaczonym koszeniem krawedzi, aby uruchomic tylko krawedzie.
+      description: Czas koszenia jednorazowego w minutach. Dla Vision / RTK traktuj go jako limit techniczny. Ustaw 0 z wlaczonym koszeniem krawedzi, aby uruchomic tylko krawedzie.
       required: false
       default: 60
       selector:
@@ -23,7 +23,7 @@ start_one_time_mowing:
           mode: slider
     edge_cut:
       name: Koszenie krawedzi
-      description: Czy jednorazowe koszenie ma zawierac koszenie krawedzi.
+      description: Czy jednorazowe koszenie ma zawierac koszenie krawedzi. Dla niezawodnego cyklu krawedzi + koszenie zalecane jest uruchomienie osobno krawedzi, poczekanie na baze i dopiero potem normalne koszenie.
       required: false
       default: false
       selector:

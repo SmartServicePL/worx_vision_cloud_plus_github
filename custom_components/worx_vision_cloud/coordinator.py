@@ -19,6 +19,7 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, Upda
 from homeassistant.util import dt as dt_util
 
 from pyworxcloud import DeviceHandler, LandroidEvent, WorxCloud
+from pyworxcloud.exceptions import NoConnectionError, TimeoutException
 from pyworxcloud.utils.requests import AGET, HEADERS
 
 from .const import DOMAIN
@@ -176,6 +177,51 @@ class WorxVisionCoordinator(DataUpdateCoordinator[dict[str, DeviceHandler]]):
         finally:
             await self.async_request_refresh()
 
+    async def _async_ensure_mqtt_connected(self) -> None:
+        """Reconnect MQTT before sending mower commands when the cloud session is stale."""
+        if getattr(self.cloud, "mqtt_connected", False):
+            return
+
+        _LOGGER.warning("Worx MQTT connection is not ready; reconnecting before command")
+        await self.cloud.connect()
+        if not getattr(self.cloud, "mqtt_connected", False):
+            raise HomeAssistantError("Worx MQTT connection is not ready")
+
+    async def _async_publish_command(
+        self, serial_number: str, topic: str, message: dict[str, Any], protocol: int
+    ) -> None:
+        """Publish a mower command, reconnecting MQTT once if needed."""
+        await self._async_ensure_mqtt_connected()
+        mqtt = getattr(self.cloud, "mqtt", None)
+        if mqtt is None:
+            raise HomeAssistantError("Worx MQTT connection is not available")
+
+        try:
+            await mqtt.apublish(serial_number, topic, message, protocol)
+        except NoConnectionError:
+            _LOGGER.warning("Worx MQTT command failed because connection was stale; retrying once")
+            await self.cloud.connect()
+            mqtt = getattr(self.cloud, "mqtt", None)
+            if mqtt is None:
+                raise HomeAssistantError("Worx MQTT connection is not available")
+            await mqtt.apublish(serial_number, topic, message, protocol)
+
+    async def _async_request_device_update_best_effort(self, serial_number: str) -> None:
+        """Refresh device state after a command without failing an accepted command."""
+        try:
+            await asyncio.wait_for(
+                self.async_request_device_update(serial_number), timeout=10
+            )
+        except (NoConnectionError, TimeoutException, TimeoutError) as err:
+            _LOGGER.warning(
+                "Worx command was sent, but state refresh did not finish: %s", err
+            )
+        except Exception as err:  # noqa: BLE001 - command already succeeded
+            _LOGGER.debug(
+                "Worx command was sent, but best-effort state refresh failed",
+                exc_info=True,
+            )
+
     async def async_start_edge_cut(self, serial_number: str) -> None:
         """Start an on-demand edge cutting task."""
         mower = self.cloud.get_mower(serial_number)
@@ -183,10 +229,6 @@ class WorxVisionCoordinator(DataUpdateCoordinator[dict[str, DeviceHandler]]):
             raise HomeAssistantError(
                 "The device is currently offline, no action was sent"
             )
-
-        mqtt = getattr(self.cloud, "mqtt", None)
-        if mqtt is None:
-            raise HomeAssistantError("Worx MQTT connection is not available")
 
         protocol = mower.get("protocol")
         command_topic = (mower.get("mqtt_topics") or {}).get("command_in")
@@ -196,7 +238,7 @@ class WorxVisionCoordinator(DataUpdateCoordinator[dict[str, DeviceHandler]]):
         # On Vision Cloud firmware 3.46.x cmd 101 is the reliable edge-only
         # command. Full one-time mowing uses cmd 10 instead.
         if protocol == 0:
-            await mqtt.apublish(
+            await self._async_publish_command(
                 serial_number,
                 command_topic,
                 {"sc": {"ots": {"bc": 1, "wtm": 0}}},
@@ -210,7 +252,7 @@ class WorxVisionCoordinator(DataUpdateCoordinator[dict[str, DeviceHandler]]):
                 "Edge cutting is not supported for this mower protocol"
             )
 
-        await self.async_request_device_update(serial_number)
+        await self._async_request_device_update_best_effort(serial_number)
 
     async def async_start_one_time_mowing(
         self,
@@ -230,10 +272,6 @@ class WorxVisionCoordinator(DataUpdateCoordinator[dict[str, DeviceHandler]]):
         runtime = int(runtime_minutes)
         zone_ids = _normalize_zone_ids(zones)
         if protocol == 0:
-            mqtt = getattr(self.cloud, "mqtt", None)
-            if mqtt is None:
-                raise HomeAssistantError("Worx MQTT connection is not available")
-
             command_topic = (mower.get("mqtt_topics") or {}).get("command_in")
             if command_topic is None:
                 raise HomeAssistantError("Worx command topic is not available")
@@ -247,17 +285,13 @@ class WorxVisionCoordinator(DataUpdateCoordinator[dict[str, DeviceHandler]]):
             if zone_ids and setzone is not None:
                 await setzone(serial_number, zone_ids[0])
 
-            await mqtt.apublish(
+            await self._async_publish_command(
                 serial_number,
                 command_topic,
                 {"sc": {"ots": {"bc": int(edge_cut), "wtm": runtime}}},
                 protocol,
             )
         elif protocol == 1:
-            mqtt = getattr(self.cloud, "mqtt", None)
-            if mqtt is None:
-                raise HomeAssistantError("Worx MQTT connection is not available")
-
             command_topic = (mower.get("mqtt_topics") or {}).get("command_in")
             if command_topic is None:
                 raise HomeAssistantError("Worx command topic is not available")
@@ -267,9 +301,11 @@ class WorxVisionCoordinator(DataUpdateCoordinator[dict[str, DeviceHandler]]):
                 raise HomeAssistantError("Worx mower UUID is not available")
 
             if edge_cut and runtime == 0 and not zone_ids:
-                await mqtt.apublish(uuid, command_topic, {"cmd": 101}, protocol)
+                await self._async_publish_command(
+                    uuid, command_topic, {"cmd": 101}, protocol
+                )
             else:
-                await mqtt.apublish(
+                await self._async_publish_command(
                     uuid,
                     command_topic,
                     {
@@ -288,7 +324,7 @@ class WorxVisionCoordinator(DataUpdateCoordinator[dict[str, DeviceHandler]]):
                 "One-time mowing is not supported for this mower protocol"
             )
 
-        await self.async_request_device_update(serial_number)
+        await self._async_request_device_update_best_effort(serial_number)
 
     def _one_time_options(self, serial_number: str) -> dict[str, Any]:
         """Return local one-time mowing options for a mower."""
