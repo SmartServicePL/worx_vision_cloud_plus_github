@@ -23,6 +23,30 @@
       "already_configured": "This account is already configured."
     }
   },
+  "services": {
+    "start_one_time_mowing": {
+      "name": "Start one-time mowing",
+      "description": "Starts one-time mowing. Runtime is the work duration for boundary-wire mowers and a technical limit for Vision/RTK mowers. Runtime 0 with edge cutting starts an edge-only pass.",
+      "fields": {
+        "entity_id": {
+          "name": "Mower",
+          "description": "Worx Vision Cloud PLUS mower entity."
+        },
+        "runtime": {
+          "name": "Mowing time",
+          "description": "One-time mowing time in minutes. Use 0 with edge cutting to start only the edges."
+        },
+        "edge_cut": {
+          "name": "Edge cutting",
+          "description": "Includes edge cutting in the one-time mowing command."
+        },
+        "zones": {
+          "name": "Zones (experimental)",
+          "description": "Optional zone IDs. Boundary-wire mowers support one zone. Vision/RTK firmware may ignore this selection."
+        }
+      }
+    }
+  },
   "entity": {
     "sensor": {
       "battery_percent": {
@@ -319,7 +343,7 @@
     },
     "select": {
       "one_time_mowing_zones": {
-        "name": "Mowing zone"
+        "name": "Mowing zones (experimental)"
       }
     },
     "update": {

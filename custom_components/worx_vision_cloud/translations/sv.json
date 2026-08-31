@@ -23,6 +23,30 @@
       "already_configured": "Det här kontot är redan konfigurerat."
     }
   },
+  "services": {
+    "start_one_time_mowing": {
+      "name": "Starta engångsklippning",
+      "description": "Startar en engångsklippning. Tiden är arbetstiden för kabelrobotar och en teknisk gräns för Vision/RTK. Tid 0 med kantklippning startar endast kanterna.",
+      "fields": {
+        "entity_id": {
+          "name": "Robotgräsklippare",
+          "description": "Worx Vision Cloud PLUS-robotens entitet."
+        },
+        "runtime": {
+          "name": "Klipptid",
+          "description": "Tid för engångsklippningen i minuter. Använd 0 med kantklippning för att bara klippa kanterna."
+        },
+        "edge_cut": {
+          "name": "Kantklippning",
+          "description": "Lägger till kantklippning i kommandot för engångsklippning."
+        },
+        "zones": {
+          "name": "Zoner (experimentellt)",
+          "description": "Valfria zon-ID:n. Kabelrobotar stöder en zon. Vision/RTK-firmware kan ignorera valet."
+        }
+      }
+    }
+  },
   "entity": {
     "sensor": {
       "battery_percent": {
@@ -319,7 +343,7 @@
     },
     "select": {
       "one_time_mowing_zones": {
-        "name": "Klippzon"
+        "name": "Klippzoner (experimentellt)"
       }
     },
     "update": {

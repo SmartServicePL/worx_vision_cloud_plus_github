@@ -285,9 +285,17 @@ def _async_migrate_entity_registry(
                         new_entity_id=new_entity_id,
                     )
 
-        device_entry = device_registry.async_get_device(
-            identifiers={(DOMAIN, str(serial_number))}
+        get_device_by_identifier = getattr(
+            device_registry, "async_get_device_by_identifier", None
         )
+        if get_device_by_identifier is not None:
+            device_entry = get_device_by_identifier(
+                (DOMAIN, str(serial_number)), entry.entry_id
+            )
+        else:
+            device_entry = device_registry.async_get_device(
+                identifiers={(DOMAIN, str(serial_number))}
+            )
         if device_entry is not None and device_entry.area_id is not None:
             area_entry = area_registry.async_get_area(device_entry.area_id)
             if (

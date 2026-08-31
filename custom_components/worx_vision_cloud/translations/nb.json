@@ -23,6 +23,30 @@
       "already_configured": "Denne kontoen er allerede konfigurert."
     }
   },
+  "services": {
+    "start_one_time_mowing": {
+      "name": "Start engangsklipping",
+      "description": "Starter en engangsklipping. Tiden er arbeidstiden for kabelroboter og en teknisk grense for Vision/RTK. Tid 0 med kantklipping starter bare kantene.",
+      "fields": {
+        "entity_id": {
+          "name": "Robotgressklipper",
+          "description": "Worx Vision Cloud PLUS-klipperens entitet."
+        },
+        "runtime": {
+          "name": "Klippetid",
+          "description": "Tid for engangsklippingen i minutter. Bruk 0 med kantklipping for å klippe bare kantene."
+        },
+        "edge_cut": {
+          "name": "Kantklipping",
+          "description": "Legger til kantklipping i kommandoen for engangsklipping."
+        },
+        "zones": {
+          "name": "Soner (eksperimentell)",
+          "description": "Valgfrie sone-ID-er. Kabelroboter støtter én sone. Vision/RTK-fastvare kan ignorere valget."
+        }
+      }
+    }
+  },
   "entity": {
     "sensor": {
       "battery_percent": {
@@ -319,7 +343,7 @@
     },
     "select": {
       "one_time_mowing_zones": {
-        "name": "Klippesone"
+        "name": "Klippesoner (eksperimentell)"
       }
     },
     "update": {

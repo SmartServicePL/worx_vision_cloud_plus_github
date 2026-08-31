@@ -15,7 +15,6 @@ from homeassistant.components.sensor import (
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import (
     DEGREE,
-    PERCENTAGE,
     SIGNAL_STRENGTH_DECIBELS_MILLIWATT,
     UnitOfArea,
     UnitOfElectricPotential,
@@ -33,10 +32,12 @@ from .const import (
     CONF_EXPOSE_RAW,
     DEFAULT_EXPOSE_RAW,
     DOMAIN,
+    PERCENTAGE_UNIT,
 )
 from .entity import WorxVisionEntity
 from .helpers import (
     MAX_STRING_STATE_LENGTH,
+    current_zone_value,
     get_dict_value,
     next_schedule_start,
     raw_entity_path_map,
@@ -44,7 +45,6 @@ from .helpers import (
     raw_path_enabled_default,
     rtk_at_station,
     rtk_current_zone,
-    rtk_current_zone_name,
     rtk_distance_to_station_m,
     rtk_map_attributes,
     rtk_map_id,
@@ -195,20 +195,22 @@ def _zone(device, key, default=None):
 
 def _zone_current_state(device) -> Any:
     """Return legacy current zone or RTK map zone name."""
-    legacy_value = _zone(device, "current")
-    if legacy_value not in (None, ""):
-        return legacy_value
-    return rtk_current_zone_name(device)
+    return current_zone_value(device)
 
 
 def _zone_current_attributes(device) -> dict[str, Any]:
     """Return current-zone diagnostic attributes for legacy and RTK mowers."""
     current_zone = rtk_current_zone(device)
     legacy_value = _zone(device, "current")
-    if legacy_value not in (None, ""):
-        source = "legacy"
-    elif current_zone is not None:
+    has_rtk_map = rtk_map_id(device) not in (None, "") or isinstance(
+        getattr(device, "_worx_vision_rtk_map", None), dict
+    )
+    if current_zone is not None:
         source = "rtk_map"
+    elif legacy_value not in (None, "") and not (
+        has_rtk_map and legacy_value in (0, "0")
+    ):
+        source = "legacy"
     else:
         source = None
     return {
@@ -632,7 +634,7 @@ STANDARD_SENSORS: tuple[WorxSensorDescription, ...] = (
     WorxSensorDescription(
         key="battery_percent",
         translation_key="battery_percent",
-        native_unit_of_measurement=PERCENTAGE,
+        native_unit_of_measurement=PERCENTAGE_UNIT,
         device_class=SensorDeviceClass.BATTERY,
         state_class=SensorStateClass.MEASUREMENT,
         value_fn=lambda d: _battery(d, "percent"),
@@ -1116,7 +1118,7 @@ class WorxDailyProgressSensor(WorxVisionEntity, SensorEntity):
 
     _attr_translation_key = "daily_progress"
     _attr_icon = "mdi:progress-check"
-    _attr_native_unit_of_measurement = PERCENTAGE
+    _attr_native_unit_of_measurement = PERCENTAGE_UNIT
     _attr_state_class = SensorStateClass.MEASUREMENT
 
     def __init__(self, coordinator, entry, serial_number: str) -> None:
@@ -1221,7 +1223,7 @@ class WorxEstimatedDailyProgressSensor(WorxEstimatedAreaMowedTodaySensor):
     _attr_translation_key = "estimated_daily_progress"
     _attr_icon = "mdi:progress-star"
     _attr_device_class = None
-    _attr_native_unit_of_measurement = PERCENTAGE
+    _attr_native_unit_of_measurement = PERCENTAGE_UNIT
 
     def __init__(self, coordinator, entry, serial_number: str) -> None:
         """Initialize estimated daily progress."""

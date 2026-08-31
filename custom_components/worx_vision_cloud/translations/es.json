@@ -23,6 +23,30 @@
       "already_configured": "Esta cuenta ya está configurada."
     }
   },
+  "services": {
+    "start_one_time_mowing": {
+      "name": "Iniciar corte único",
+      "description": "Inicia un corte único. El tiempo es la duración de trabajo para robots con cable y un límite técnico para Vision/RTK. El tiempo 0 con bordes inicia solo el corte de bordes.",
+      "fields": {
+        "entity_id": {
+          "name": "Robot cortacésped",
+          "description": "Entidad del robot Worx Vision Cloud PLUS."
+        },
+        "runtime": {
+          "name": "Tiempo de corte",
+          "description": "Tiempo del corte único en minutos. Usa 0 con bordes para cortar solo los bordes."
+        },
+        "edge_cut": {
+          "name": "Corte de bordes",
+          "description": "Incluye el corte de bordes en la orden de corte único."
+        },
+        "zones": {
+          "name": "Zonas (experimental)",
+          "description": "Identificadores de zona opcionales. Los robots con cable admiten una zona. El firmware Vision/RTK puede ignorar la selección."
+        }
+      }
+    }
+  },
   "entity": {
     "sensor": {
       "battery_percent": {
@@ -319,7 +343,7 @@
     },
     "select": {
       "one_time_mowing_zones": {
-        "name": "Zona de corte"
+        "name": "Zonas de corte (experimental)"
       }
     },
     "update": {

@@ -23,6 +23,30 @@
       "already_configured": "Questo account è già configurato."
     }
   },
+  "services": {
+    "start_one_time_mowing": {
+      "name": "Avvia taglio singolo",
+      "description": "Avvia un taglio singolo. La durata indica il tempo di lavoro per i robot con filo e un limite tecnico per Vision/RTK. Durata 0 con bordi avvia solo il taglio dei bordi.",
+      "fields": {
+        "entity_id": {
+          "name": "Robot rasaerba",
+          "description": "Entità del robot Worx Vision Cloud PLUS."
+        },
+        "runtime": {
+          "name": "Durata taglio",
+          "description": "Durata del taglio singolo in minuti. Usa 0 con bordi per tagliare solo i bordi."
+        },
+        "edge_cut": {
+          "name": "Taglio bordi",
+          "description": "Include il taglio dei bordi nel comando di taglio singolo."
+        },
+        "zones": {
+          "name": "Zone (sperimentale)",
+          "description": "ID zona opzionali. I robot con filo supportano una zona. Il firmware Vision/RTK può ignorare la selezione."
+        }
+      }
+    }
+  },
   "entity": {
     "sensor": {
       "battery_percent": {
@@ -319,7 +343,7 @@
     },
     "select": {
       "one_time_mowing_zones": {
-        "name": "Zona di taglio"
+        "name": "Zone di taglio (sperimentale)"
       }
     },
     "update": {

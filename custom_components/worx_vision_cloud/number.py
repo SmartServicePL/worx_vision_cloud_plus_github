@@ -10,12 +10,12 @@ from homeassistant.components.number import (
     NumberMode,
 )
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import PERCENTAGE, UnitOfArea, UnitOfLength, UnitOfTime
+from homeassistant.const import UnitOfArea, UnitOfLength, UnitOfTime
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
-from .const import DOMAIN
+from .const import DOMAIN, PERCENTAGE_UNIT
 from .entity import WorxVisionEntity
 from .helpers import get_dict_value, get_nested_value
 
@@ -200,7 +200,7 @@ NUMBERS: tuple[WorxNumberDescription, ...] = (
         native_min_value=-100,
         native_max_value=100,
         native_step=1,
-        native_unit_of_measurement=PERCENTAGE,
+        native_unit_of_measurement=PERCENTAGE_UNIT,
         mode=NumberMode.BOX,
         value_fn=lambda d: _as_float(_schedule_value(d, "time_extension")),
         set_fn=_set_time_extension,

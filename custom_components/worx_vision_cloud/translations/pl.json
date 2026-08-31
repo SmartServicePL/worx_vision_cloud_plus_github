@@ -23,6 +23,30 @@
       "already_configured": "To konto jest już skonfigurowane."
     }
   },
+  "services": {
+    "start_one_time_mowing": {
+      "name": "Uruchom koszenie jednorazowe",
+      "description": "Uruchamia koszenie jednorazowe. Dla kosiarek z przewodem czas oznacza czas pracy, a dla Vision/RTK jest limitem technicznym. Czas 0 z włączonymi krawędziami uruchamia wyłącznie przycinanie krawędzi.",
+      "fields": {
+        "entity_id": {
+          "name": "Kosiarka",
+          "description": "Encja kosiarki Worx Vision Cloud PLUS."
+        },
+        "runtime": {
+          "name": "Czas koszenia",
+          "description": "Czas koszenia jednorazowego w minutach. Ustaw 0 z włączonymi krawędziami, aby uruchomić tylko krawędzie."
+        },
+        "edge_cut": {
+          "name": "Koszenie krawędzi",
+          "description": "Dołącza koszenie krawędzi do polecenia koszenia jednorazowego."
+        },
+        "zones": {
+          "name": "Strefy (eksperymentalne)",
+          "description": "Opcjonalne identyfikatory stref. Kosiarki z przewodem obsługują jedną strefę. Oprogramowanie Vision/RTK może zignorować ten wybór."
+        }
+      }
+    }
+  },
   "entity": {
     "sensor": {
       "battery_percent": {
@@ -319,7 +343,7 @@
     },
     "select": {
       "one_time_mowing_zones": {
-        "name": "Strefy koszenia jednorazowego"
+        "name": "Strefy koszenia jednorazowego (eksperymentalne)"
       }
     },
     "update": {

@@ -14,7 +14,14 @@ from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
 from .const import DOMAIN
 from .entity import WorxVisionEntity
-from .helpers import get_dict_value, get_nested_value, rtk_map_id, rtk_position
+from .helpers import (
+    get_dict_value,
+    get_nested_value,
+    rtk_current_zone,
+    rtk_current_zone_name,
+    rtk_map_id,
+    rtk_position,
+)
 
 SVG_WIDTH = 900
 SVG_HEIGHT = 620
@@ -93,8 +100,12 @@ class WorxVisionMapCamera(WorxVisionEntity, Camera):
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
         """Return RTK map metadata."""
-        map_data = self._last_map_data or {}
-        zone = _first_zone(map_data)
+        map_data = self._last_map_data or getattr(
+            self.device, "_worx_vision_rtk_map", {}
+        ) or {}
+        zones = _map_zones(map_data)
+        first_zone = zones[0] if zones else {}
+        current_zone = rtk_current_zone(self.device) or {}
         exclusion_count = len(get_nested_value(map_data, "layers", "exclusions", default=[]) or [])
         marker_count = len(get_nested_value(map_data, "layers", "markers", default=[]) or [])
 
@@ -104,9 +115,14 @@ class WorxVisionMapCamera(WorxVisionEntity, Camera):
             "map_type": get_dict_value(map_data, "type"),
             "active": get_dict_value(map_data, "active"),
             "rtk_provider": get_dict_value(map_data, "rtk_provider"),
-            "zone_name": get_dict_value(zone, "name"),
-            "zone_area_m2": _scaled_area(get_dict_value(zone, "area")),
-            "zone_perimeter_m": _scaled_length(get_dict_value(zone, "perimeter")),
+            "zone_count": len(zones),
+            "current_zone_id": get_dict_value(current_zone, "id"),
+            "current_zone_name": rtk_current_zone_name(self.device),
+            "first_zone_name": get_dict_value(first_zone, "name"),
+            "first_zone_area_m2": _scaled_area(get_dict_value(first_zone, "area")),
+            "first_zone_perimeter_m": _scaled_length(
+                get_dict_value(first_zone, "perimeter")
+            ),
             "exclusion_count": exclusion_count,
             "marker_count": marker_count,
             "cutting_width_cm": round(_cutting_width_m(self.device) * 100, 1),
@@ -179,15 +195,22 @@ def _scaled_length(value: Any) -> float | None:
         return None
 
 
-def _first_zone(map_data: dict[str, Any]) -> dict[str, Any]:
-    """Return the first boundary zone from map data."""
+def _map_zones(map_data: dict[str, Any]) -> list[dict[str, Any]]:
+    """Return all boundary zones from map data."""
+    result: list[dict[str, Any]] = []
     boundaries = get_nested_value(map_data, "layers", "boundaries", default=[]) or []
     for boundary in boundaries:
         zones = get_dict_value(boundary, "zones", []) or []
         for zone in zones:
             if isinstance(zone, dict):
-                return zone
-    return {}
+                result.append(zone)
+    return result
+
+
+def _first_zone(map_data: dict[str, Any]) -> dict[str, Any]:
+    """Return the first boundary zone from map data."""
+    zones = _map_zones(map_data)
+    return zones[0] if zones else {}
 
 
 def _point_pair(point: Any) -> tuple[float, float] | None:

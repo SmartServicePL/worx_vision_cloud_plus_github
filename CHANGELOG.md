@@ -2,6 +2,23 @@
 
 ## Unreleased
 
+## 1.4.0 - 2026-08-31
+
+- Fixed the current-zone sensor on RTK mowers whose protocol reports the
+  placeholder value `0`; the sensor now prefers the live RTK map polygon while
+  preserving zone `0` for older boundary-wire mowers.
+- Replaced ambiguous RTK map `zone_*` attributes with explicit
+  `current_zone_*`, `first_zone_*` and `zone_count` metadata.
+- Updated Home Assistant compatibility by using the modern percentage unit and
+  device-registry lookup APIs while retaining compatibility with older
+  supported Home Assistant versions.
+- Added translated service names, descriptions and fields for all ten supported
+  languages, and completed localized dynamic zone labels.
+- Marked Vision/RTK one-time zone selection as experimental because some current
+  firmware ignores zone IDs sent through the available MQTT command.
+- Added regression tests for RTK placeholder-zone handling and legacy zone-zero
+  compatibility.
+
 ## 1.3.1 - 2026-07-19
 
 - Reconnected the Worx MQTT session before mower commands when the cloud connection is stale.

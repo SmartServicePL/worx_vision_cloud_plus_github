@@ -3,6 +3,13 @@ from __future__ import annotations
 
 from homeassistant.const import Platform
 
+try:
+    from homeassistant.const import UnitOfRatio
+except ImportError:  # Home Assistant before 2026.7
+    PERCENTAGE_UNIT = "%"
+else:
+    PERCENTAGE_UNIT = UnitOfRatio.PERCENTAGE
+
 DOMAIN = "worx_vision_cloud"
 
 CONF_CLOUD = "cloud"

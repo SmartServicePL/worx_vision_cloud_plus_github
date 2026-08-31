@@ -594,6 +594,25 @@ def rtk_current_zone_name(device: Any) -> str | None:
     return f"Zone {zone_id}" if zone_id not in (None, "") else None
 
 
+def current_zone_value(device: Any) -> Any:
+    """Return a live RTK zone when available, otherwise the legacy zone value."""
+    legacy_value = get_dict_value(getattr(device, "zone", {}), "current")
+    has_rtk_map = rtk_map_id(device) not in (None, "") or isinstance(
+        getattr(device, "_worx_vision_rtk_map", None), dict
+    )
+
+    if has_rtk_map:
+        rtk_value = rtk_current_zone_name(device)
+        if rtk_value is not None:
+            return rtk_value
+        # Protocol 1 reports zero while parked or when no legacy zone is active.
+        # Zone zero remains valid for older boundary-wire mowers without RTK.
+        if legacy_value in (None, "", 0, "0"):
+            return None
+
+    return legacy_value if legacy_value not in (None, "") else None
+
+
 def rtk_location_attributes(device: Any) -> dict[str, Any]:
     """Return RTK location diagnostic attributes."""
     dat_rtk = get_nested_value(_raw_dat(device), "rtk", default={}) or {}

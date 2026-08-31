@@ -27,10 +27,14 @@ HELPERS = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(HELPERS)
 
 
-def _device(position: list[float]) -> SimpleNamespace:
+def _device(
+    position: list[float], legacy_current: int | str | None = 0
+) -> SimpleNamespace:
     """Return a mower-like object with RTK position and map geometry."""
     return SimpleNamespace(
+        raw_cfg={"rtk": {"map": "map-1"}},
         raw_dat={"rtk": {"pos": position}},
+        zone={"current": legacy_current},
         _worx_vision_rtk_map={
             "layers": {
                 "boundaries": [
@@ -104,6 +108,21 @@ class RtkCurrentZoneTests(unittest.TestCase):
                 SimpleNamespace(raw_dat={}, _worx_vision_rtk_map={})
             )
         )
+
+    def test_rtk_zone_zero_uses_live_polygon_zone(self) -> None:
+        self.assertEqual(
+            HELPERS.current_zone_value(_device([52.002, 20.002], 0)),
+            "Front lawn",
+        )
+
+    def test_rtk_zone_zero_is_empty_outside_lawn(self) -> None:
+        self.assertIsNone(
+            HELPERS.current_zone_value(_device([52.050, 20.050], 0))
+        )
+
+    def test_legacy_zone_zero_is_preserved_without_rtk(self) -> None:
+        device = SimpleNamespace(raw_cfg={}, raw_dat={}, zone={"current": 0})
+        self.assertEqual(HELPERS.current_zone_value(device), 0)
 
 
 if __name__ == "__main__":

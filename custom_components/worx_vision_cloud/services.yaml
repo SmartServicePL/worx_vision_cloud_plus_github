@@ -1,17 +1,11 @@
 start_one_time_mowing:
-  name: Uruchom koszenie jednorazowe
-  description: Uruchamia jednorazowe koszenie. Dla Vision / RTK czas jest technicznym limitem, a dla starszych robotow z przewodem oznacza czas pracy. Runtime 0 z koszeniem krawedzi uruchamia tylko krawedzie.
   fields:
     entity_id:
-      name: Kosiarka
-      description: Encja kosiarki Worx Vision Cloud PLUS.
       required: true
       selector:
         entity:
           domain: lawn_mower
     runtime:
-      name: Czas koszenia
-      description: Czas koszenia jednorazowego w minutach. Dla Vision / RTK traktuj go jako limit techniczny. Ustaw 0 z wlaczonym koszeniem krawedzi, aby uruchomic tylko krawedzie.
       required: false
       default: 60
       selector:
@@ -22,15 +16,11 @@ start_one_time_mowing:
           unit_of_measurement: min
           mode: slider
     edge_cut:
-      name: Koszenie krawedzi
-      description: Czy jednorazowe koszenie ma zawierac koszenie krawedzi. Dla niezawodnego cyklu krawedzi + koszenie zalecane jest uruchomienie osobno krawedzi, poczekanie na baze i dopiero potem normalne koszenie.
       required: false
       default: false
       selector:
         boolean:
     zones:
-      name: Strefy
-      description: Opcjonalna lista identyfikatorow stref RTK, np. [1, 2]. Puste pole oznacza domyslne koszenie bez ograniczenia do konkretnych stref.
       required: false
       example:
         - 1

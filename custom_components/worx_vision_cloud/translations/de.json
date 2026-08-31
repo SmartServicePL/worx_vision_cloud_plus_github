@@ -23,6 +23,30 @@
       "already_configured": "Dieses Konto ist bereits konfiguriert."
     }
   },
+  "services": {
+    "start_one_time_mowing": {
+      "name": "Einmaliges Mähen starten",
+      "description": "Startet einmaliges Mähen. Bei Begrenzungsdraht-Mähern ist die Laufzeit die Arbeitsdauer, bei Vision/RTK ein technisches Limit. Laufzeit 0 mit Kantenschnitt startet nur den Kantenschnitt.",
+      "fields": {
+        "entity_id": {
+          "name": "Mäher",
+          "description": "Worx Vision Cloud PLUS Mäher-Entität."
+        },
+        "runtime": {
+          "name": "Mähzeit",
+          "description": "Zeit für das einmalige Mähen in Minuten. 0 mit Kantenschnitt startet nur die Kanten."
+        },
+        "edge_cut": {
+          "name": "Kantenschnitt",
+          "description": "Fügt dem einmaligen Mähbefehl einen Kantenschnitt hinzu."
+        },
+        "zones": {
+          "name": "Zonen (experimentell)",
+          "description": "Optionale Zonen-IDs. Begrenzungsdraht-Mäher unterstützen eine Zone. Vision/RTK-Firmware kann die Auswahl ignorieren."
+        }
+      }
+    }
+  },
   "entity": {
     "sensor": {
       "battery_percent": {
@@ -319,7 +343,7 @@
     },
     "select": {
       "one_time_mowing_zones": {
-        "name": "Mähzone"
+        "name": "Mähzonen (experimentell)"
       }
     },
     "update": {

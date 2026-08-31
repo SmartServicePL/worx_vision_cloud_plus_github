@@ -23,6 +23,30 @@
       "already_configured": "Ce compte est déjà configuré."
     }
   },
+  "services": {
+    "start_one_time_mowing": {
+      "name": "Démarrer une tonte unique",
+      "description": "Démarre une tonte unique. La durée correspond au temps de travail des robots à câble et à une limite technique pour Vision/RTK. Une durée de 0 avec les bordures lance uniquement les bordures.",
+      "fields": {
+        "entity_id": {
+          "name": "Robot tondeuse",
+          "description": "Entité du robot Worx Vision Cloud PLUS."
+        },
+        "runtime": {
+          "name": "Durée de tonte",
+          "description": "Durée de la tonte unique en minutes. Utilisez 0 avec les bordures pour ne tondre que les bordures."
+        },
+        "edge_cut": {
+          "name": "Tonte des bordures",
+          "description": "Ajoute la tonte des bordures à la commande de tonte unique."
+        },
+        "zones": {
+          "name": "Zones (expérimental)",
+          "description": "Identifiants de zones facultatifs. Les robots à câble acceptent une zone. Le micrologiciel Vision/RTK peut ignorer cette sélection."
+        }
+      }
+    }
+  },
   "entity": {
     "sensor": {
       "battery_percent": {
@@ -319,7 +343,7 @@
     },
     "select": {
       "one_time_mowing_zones": {
-        "name": "Zone de tonte"
+        "name": "Zones de tonte (expérimental)"
       }
     },
     "update": {

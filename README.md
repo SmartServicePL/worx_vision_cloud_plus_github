@@ -20,7 +20,7 @@ If this integration helps you, you can support Smart Service:
 
 - Native Home Assistant `lawn_mower` entity.
 - Start, pause and dock commands.
-- One-time mowing controls with runtime, edge cutting and optional RTK zone selection.
+- One-time mowing controls with runtime, edge cutting and experimental zone selection.
 - On-demand edge cutting button.
 - Native firmware `update` entity with OTA install support when Worx exposes it.
 - Rain delay, schedule time-extension, lawn area, lawn perimeter and Vision edge-distance number entities.
@@ -158,6 +158,10 @@ The map can include:
 - current robot position from RTK payload
 - recent RTK trail kept in memory by Home Assistant
 
+The current-zone sensor resolves the live RTK position against the lawn polygons.
+The map camera exposes separate `current_zone_*` and `first_zone_*` metadata so
+the first configured zone is not mistaken for the robot's current location.
+
 The map is not a video stream. It updates when Home Assistant receives new data from Worx Cloud or when the integration refreshes cached API data.
 
 ## RTK Address
@@ -175,6 +179,13 @@ Before opening an issue, remove private data from logs and screenshots. See [SEC
 ## Limitations
 
 The Worx / Positec cloud API is not officially public. Some endpoints used here are reverse-engineered and can change without notice. This is a best-effort custom integration, not official Worx software.
+
+Zone selection is reliable only where the mower protocol supports it. Older
+boundary-wire mowers accept one zone. Some Vision/RTK firmware, including the
+reported WR312E firmware 3.46.x, ignores zone IDs in the available MQTT
+one-time-mowing command even though the official app can select zones through
+an undisclosed cloud route. For that reason Vision/RTK zone selection remains
+experimental; leaving the selection empty starts normal all-zone mowing.
 
 The cloud does not expose a reliable flag distinguishing a temporary charging
 stop from completion of the whole mowing cycle. The integration therefore does
