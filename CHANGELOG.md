@@ -2,6 +2,28 @@
 
 ## Unreleased
 
+## 1.4.1 - 2026-09-26
+
+- Fixed the "Expose all raw payload fields as entities" option: it was reset to
+  off on every start, so raw debug entities could never be enabled.
+- Fixed cloud statistics (covered area, maintenance counters) that could stop
+  refreshing while the mower was working: frequent MQTT pushes no longer
+  postpone the periodic Worx REST refresh.
+- Fixed the RTK address sensor sending practically exact coordinates to
+  OpenStreetMap Nominatim and repeating the lookup on almost every move; lookups
+  now use coordinates rounded to about 11 m and are cached accordingly.
+- Added re-authentication: when Worx rejects the saved login, Home Assistant
+  asks for the new password instead of requiring the integration to be removed.
+- Fixed a Worx cloud connection left open when the first data refresh failed
+  during setup.
+- Fixed unloading so runtime data is kept when Home Assistant cannot unload the
+  platforms.
+- One-time mowing runtime, edge cutting and zone selection are now kept after a
+  Home Assistant restart.
+- The one-time mowing service now rejects a runtime of 0 minutes unless an
+  edge-only pass is requested.
+- Corrected the integration address in the reverse-geocoding User-Agent.
+
 ## 1.4.0 - 2026-08-31
 
 - Fixed the current-zone sensor on RTK mowers whose protocol reports the

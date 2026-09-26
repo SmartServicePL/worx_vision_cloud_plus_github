@@ -30,16 +30,20 @@ _LOGGER = logging.getLogger(__name__)
 
 RTK_MAP_CACHE_TTL = timedelta(minutes=30)
 RTK_ADDRESS_CACHE_TTL = timedelta(hours=24)
-RTK_ADDRESS_COORD_PRECISION = 7
+# Four decimal places is roughly 11 m: precise enough for a street address, but it
+# does not reveal the mower's exact position and keeps the cache stable while mowing.
+RTK_ADDRESS_COORD_PRECISION = 4
 RTK_ADDRESS_ENDPOINT = "https://nominatim.openstreetmap.org/reverse"
 RTK_ADDRESS_USER_AGENT = (
     "Worx Vision Cloud PLUS Home Assistant custom integration "
-    "(https://github.com/SmartServicePL/Worx-Vision-Cloud-PLUS)"
+    "(https://github.com/SmartServicePL/worx_vision_cloud_plus_github)"
 )
 PRODUCT_ITEM_CACHE_TTL = timedelta(minutes=5)
 FIRMWARE_UPGRADE_CACHE_TTL = timedelta(minutes=30)
 STATISTICS_STORAGE_VERSION = 1
 STATISTICS_SAVE_DELAY = 60
+OPTIONS_STORAGE_VERSION = 1
+OPTIONS_SAVE_DELAY = 5
 RTK_TRAIL_MAX_POINTS = 300
 DEFAULT_ONE_TIME_MOWING_RUNTIME = 60
 DEFAULT_ONE_TIME_MOWING_EDGE_CUT = False
@@ -88,6 +92,11 @@ class WorxVisionCoordinator(DataUpdateCoordinator[dict[str, DeviceHandler]]):
         )
         self._statistics = DailyStatisticsTracker()
         self._statistics_save_pending = False
+        self._options_store = Store[dict[str, Any]](
+            hass,
+            OPTIONS_STORAGE_VERSION,
+            f"{DOMAIN}.{config_entry.entry_id}.one_time_mowing",
+        )
         self._shutdown_complete = False
         self._event_lock = asyncio.Lock()
         self._rtk_address_lock = asyncio.Lock()
@@ -108,6 +117,7 @@ class WorxVisionCoordinator(DataUpdateCoordinator[dict[str, DeviceHandler]]):
         self._statistics = DailyStatisticsTracker(
             await self._statistics_store.async_load()
         )
+        self._restore_one_time_options(await self._options_store.async_load())
 
         def _on_data_received(name: str, device: DeviceHandler) -> None:
             del name
@@ -130,6 +140,7 @@ class WorxVisionCoordinator(DataUpdateCoordinator[dict[str, DeviceHandler]]):
         self._statistics_save_pending = False
         try:
             await self._statistics_store.async_save(self._statistics.as_dict())
+            await self._options_store.async_save(self._one_time_mowing_options)
         finally:
             await super().async_shutdown()
 
@@ -145,7 +156,17 @@ class WorxVisionCoordinator(DataUpdateCoordinator[dict[str, DeviceHandler]]):
             self._update_daily_statistics(str(serial), device)
             data = dict(self.data or {})
             data[str(serial)] = device
-            self.async_set_updated_data(data)
+            self._async_publish_data(data)
+
+    def _async_publish_data(self, data: dict[str, DeviceHandler]) -> None:
+        """Notify entities without postponing the periodic REST refresh.
+
+        MQTT pushes can arrive more often than the refresh interval. Using
+        async_set_updated_data here would restart the refresh timer on every push
+        and starve the product-item statistics while the mower is working.
+        """
+        self.data = data
+        self.async_update_listeners()
 
     async def _refresh_from_cloud_cache(self) -> dict[str, DeviceHandler]:
         """Return current cloud cache."""
@@ -271,6 +292,10 @@ class WorxVisionCoordinator(DataUpdateCoordinator[dict[str, DeviceHandler]]):
         protocol = mower.get("protocol")
         runtime = int(runtime_minutes)
         zone_ids = _normalize_zone_ids(zones)
+        if runtime <= 0 and not edge_cut:
+            raise HomeAssistantError(
+                "Runtime must be at least 1 minute unless only edge cutting is requested"
+            )
         if protocol == 0:
             command_topic = (mower.get("mqtt_topics") or {}).get("command_in")
             if command_topic is None:
@@ -363,21 +388,45 @@ class WorxVisionCoordinator(DataUpdateCoordinator[dict[str, DeviceHandler]]):
         """Set local one-time mowing runtime."""
         runtime = max(10, min(120, int(runtime_minutes)))
         self._one_time_options(serial_number)["runtime"] = runtime
-        self.async_set_updated_data(self.data or {})
+        self._async_options_changed()
 
     async def async_set_one_time_mowing_edge_cut(
         self, serial_number: str, enabled: bool
     ) -> None:
         """Set whether local one-time mowing starts with edge cutting."""
         self._one_time_options(serial_number)["edge_cut"] = bool(enabled)
-        self.async_set_updated_data(self.data or {})
+        self._async_options_changed()
 
     async def async_set_one_time_mowing_zones(
         self, serial_number: str, zones: list[int]
     ) -> None:
         """Set local one-time mowing RTK zones."""
         self._one_time_options(serial_number)["zones"] = _normalize_zone_ids(zones)
-        self.async_set_updated_data(self.data or {})
+        self._async_options_changed()
+
+    def _async_options_changed(self) -> None:
+        """Persist local one-time mowing options and refresh entities."""
+        self._options_store.async_delay_save(
+            lambda: self._one_time_mowing_options, OPTIONS_SAVE_DELAY
+        )
+        self.async_update_listeners()
+
+    def _restore_one_time_options(self, stored: Any) -> None:
+        """Restore one-time mowing options saved before a restart."""
+        if not isinstance(stored, dict):
+            return
+        for serial_number, options in stored.items():
+            if not isinstance(options, dict):
+                continue
+            restored = self._one_time_options(str(serial_number))
+            try:
+                restored["runtime"] = max(
+                    10, min(120, int(options.get("runtime", restored["runtime"])))
+                )
+                restored["edge_cut"] = bool(options.get("edge_cut", restored["edge_cut"]))
+                restored["zones"] = _normalize_zone_ids(options.get("zones") or [])
+            except (TypeError, ValueError):
+                _LOGGER.debug("Ignoring invalid stored one-time mowing options")
 
     async def async_start_configured_one_time_mowing(self, serial_number: str) -> None:
         """Start one-time mowing using local UI options."""

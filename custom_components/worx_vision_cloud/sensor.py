@@ -37,6 +37,7 @@ from .const import (
 from .entity import WorxVisionEntity
 from .helpers import (
     MAX_STRING_STATE_LENGTH,
+    MOWING_STATUS_IDS,
     current_zone_value,
     get_dict_value,
     next_schedule_start,
@@ -460,7 +461,7 @@ def _mowing_readiness_code(device) -> str | None:
         return "charging"
 
     status_id = _status(device, "id")
-    if status_id in (7, 8, 12, 32, 110, 111):
+    if status_id in MOWING_STATUS_IDS:
         return "mowing"
     return "ready"
 
@@ -625,7 +626,7 @@ def _rtk_address_attributes(
         "country_code": _first_address_text(address, "country_code"),
         "attribution": address_data.get("licence"),
         "lookup_time": lookup_time.isoformat() if lookup_time else None,
-        "privacy_note": "Entity disabled by default; enabling it sends RTK coordinates rounded to 7 decimal places to Nominatim.",
+        "privacy_note": "Entity disabled by default; enabling it sends RTK coordinates rounded to 4 decimal places (about 11 m) to Nominatim.",
     }
     return {key: value for key, value in attrs.items() if value is not None}
 
