@@ -7,6 +7,7 @@ code paths use.
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from datetime import UTC, datetime
 from enum import Enum, IntFlag, StrEnum
 import importlib
@@ -366,6 +367,54 @@ def _install_homeassistant() -> None:
         LawnMowerActivity=LawnMowerActivity,
         LawnMowerEntity=object,
         LawnMowerEntityFeature=LawnMowerEntityFeature,
+    )
+
+    class _AnyMember(type):
+        """Enum-like class whose members are their lower-case names."""
+
+        def __getattr__(cls, name: str) -> str:
+            if name.startswith("__"):
+                raise AttributeError(name)
+            return name.lower()
+
+    def _enum(name: str) -> type:
+        return _AnyMember(name, (), {})
+
+    @dataclass(frozen=True, kw_only=True)
+    class SensorEntityDescription:
+        key: str
+        name: Any = None
+        translation_key: str | None = None
+        translation_placeholders: Any = None
+        icon: str | None = None
+        device_class: Any = None
+        options: list[str] | None = None
+        native_unit_of_measurement: Any = None
+        suggested_unit_of_measurement: Any = None
+        suggested_display_precision: int | None = None
+        state_class: Any = None
+        entity_category: Any = None
+        entity_registry_enabled_default: bool = True
+        entity_registry_visible_default: bool = True
+        has_entity_name: bool = False
+        force_update: bool = False
+
+    _set_default(
+        _module("homeassistant.components.sensor"),
+        SensorDeviceClass=_enum("SensorDeviceClass"),
+        SensorStateClass=_enum("SensorStateClass"),
+        SensorEntity=object,
+        SensorEntityDescription=SensorEntityDescription,
+    )
+    _set_default(sys.modules["homeassistant.helpers.entity"], EntityCategory=_enum("EntityCategory"))
+    _set_default(
+        const,
+        DEGREE="°",
+        SIGNAL_STRENGTH_DECIBELS_MILLIWATT="dBm",
+        UnitOfArea=_enum("UnitOfArea"),
+        UnitOfElectricPotential=_enum("UnitOfElectricPotential"),
+        UnitOfTemperature=_enum("UnitOfTemperature"),
+        UnitOfTime=_enum("UnitOfTime"),
     )
     del helpers
 

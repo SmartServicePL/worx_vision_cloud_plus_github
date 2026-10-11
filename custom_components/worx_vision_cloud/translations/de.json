@@ -87,7 +87,11 @@
           "locked": "Gesperrt",
           "error": "Fehler",
           "no_error": "Kein Fehler",
-          "offline": "Offline"
+          "offline": "Offline",
+          "searching_home": "Sucht Ladestation",
+          "searching_zone": "Sucht Zone",
+          "remote_control": "Fernsteuerung",
+          "zoning": "Zonentraining"
         }
       },
       "error": {
@@ -106,7 +110,11 @@
           "locked": "Gesperrt",
           "error": "Fehler",
           "no_error": "Kein Fehler",
-          "offline": "Offline"
+          "offline": "Offline",
+          "searching_home": "Sucht Ladestation",
+          "searching_zone": "Sucht Zone",
+          "remote_control": "Fernsteuerung",
+          "zoning": "Zonentraining"
         }
       },
       "rssi": {

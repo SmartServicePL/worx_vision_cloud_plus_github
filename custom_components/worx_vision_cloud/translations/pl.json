@@ -87,7 +87,11 @@
           "locked": "zablokowana",
           "error": "błąd",
           "no_error": "brak błędu",
-          "offline": "offline"
+          "offline": "offline",
+          "searching_home": "szukanie bazy",
+          "searching_zone": "szukanie strefy",
+          "remote_control": "zdalne sterowanie",
+          "zoning": "nauka stref"
         }
       },
       "error": {
@@ -106,7 +110,11 @@
           "locked": "zablokowana",
           "error": "błąd",
           "no_error": "brak błędu",
-          "offline": "offline"
+          "offline": "offline",
+          "searching_home": "szukanie bazy",
+          "searching_zone": "szukanie strefy",
+          "remote_control": "zdalne sterowanie",
+          "zoning": "nauka stref"
         }
       },
       "rssi": {

@@ -85,6 +85,28 @@ STATUS_STATE_KEYS = {
     "offline": "offline",
 }
 
+# Status descriptions from pyworxcloud (utils/state.py STATE_TO_DESCRIPTION) that are
+# not shared with the error sensor. Every description the library can report maps to
+# an option, so the status sensor never shows "unknown" for a real state; for example
+# 104 "searching home" is reported when the cloud keeps a return command after the
+# mower already stands in the dock.
+STATUS_ONLY_STATE_KEYS = {
+    "start sequence": "leaving_home",
+    "follow wire": "going_home",
+    "searching home": "searching_home",
+    "searching wire": "searching_home",
+    "trapped": "error",
+    "blade blocked": "error",
+    "digital fence escape": "error",
+    "remote control": "remote_control",
+    "zoning": "zoning",
+    "searching area": "searching_zone",
+    "searching zone": "searching_zone",
+    "border crossing": "mowing",
+    "exploring lawn": "mowing",
+}
+STATUS_DESCRIPTION_KEYS = {**STATUS_STATE_KEYS, **STATUS_ONLY_STATE_KEYS}
+
 # Canonical option lists exposed as enum sensor states.
 STATUS_STATE_OPTIONS = [
     "home",
@@ -101,6 +123,10 @@ STATUS_STATE_OPTIONS = [
     "error",
     "no_error",
     "offline",
+    "searching_home",
+    "searching_zone",
+    "remote_control",
+    "zoning",
 ]
 
 READINESS_STATE_OPTIONS = [
@@ -151,7 +177,7 @@ def _status(device, key, default=None):
 def _status_state(device) -> str | None:
     if _is_rain_delay(device):
         return "rain_delay"
-    return _state_key(_status(device, "description"), STATUS_STATE_KEYS)
+    return _state_key(_status(device, "description"), STATUS_DESCRIPTION_KEYS)
 
 
 def _error(device, key, default=None):

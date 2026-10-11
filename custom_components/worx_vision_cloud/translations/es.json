@@ -87,7 +87,11 @@
           "locked": "Bloqueado",
           "error": "Error",
           "no_error": "Sin errores",
-          "offline": "Sin conexión"
+          "offline": "Sin conexión",
+          "searching_home": "Buscando la base",
+          "searching_zone": "Buscando zona",
+          "remote_control": "Control remoto",
+          "zoning": "Aprendizaje de zonas"
         }
       },
       "error": {
@@ -106,7 +110,11 @@
           "locked": "Bloqueado",
           "error": "Error",
           "no_error": "Sin errores",
-          "offline": "Sin conexión"
+          "offline": "Sin conexión",
+          "searching_home": "Buscando la base",
+          "searching_zone": "Buscando zona",
+          "remote_control": "Control remoto",
+          "zoning": "Aprendizaje de zonas"
         }
       },
       "rssi": {

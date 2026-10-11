@@ -87,7 +87,11 @@
           "locked": "Låst",
           "error": "Fel",
           "no_error": "Inget fel",
-          "offline": "Offline"
+          "offline": "Offline",
+          "searching_home": "Söker laddstation",
+          "searching_zone": "Söker zon",
+          "remote_control": "Fjärrstyrning",
+          "zoning": "Zonträning"
         }
       },
       "error": {
@@ -106,7 +110,11 @@
           "locked": "Låst",
           "error": "Fel",
           "no_error": "Inget fel",
-          "offline": "Offline"
+          "offline": "Offline",
+          "searching_home": "Söker laddstation",
+          "searching_zone": "Söker zon",
+          "remote_control": "Fjärrstyrning",
+          "zoning": "Zonträning"
         }
       },
       "rssi": {

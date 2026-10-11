@@ -87,7 +87,11 @@
           "locked": "Verrouillée",
           "error": "Erreur",
           "no_error": "Aucune erreur",
-          "offline": "Hors ligne"
+          "offline": "Hors ligne",
+          "searching_home": "Recherche de la base",
+          "searching_zone": "Recherche de zone",
+          "remote_control": "Télécommande",
+          "zoning": "Apprentissage des zones"
         }
       },
       "error": {
@@ -106,7 +110,11 @@
           "locked": "Verrouillée",
           "error": "Erreur",
           "no_error": "Aucune erreur",
-          "offline": "Hors ligne"
+          "offline": "Hors ligne",
+          "searching_home": "Recherche de la base",
+          "searching_zone": "Recherche de zone",
+          "remote_control": "Télécommande",
+          "zoning": "Apprentissage des zones"
         }
       },
       "rssi": {

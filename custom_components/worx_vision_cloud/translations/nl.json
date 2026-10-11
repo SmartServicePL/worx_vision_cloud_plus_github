@@ -87,7 +87,11 @@
           "locked": "Vergrendeld",
           "error": "Fout",
           "no_error": "Geen fout",
-          "offline": "Offline"
+          "offline": "Offline",
+          "searching_home": "Zoekt laadstation",
+          "searching_zone": "Zoekt zone",
+          "remote_control": "Afstandsbediening",
+          "zoning": "Zonetraining"
         }
       },
       "error": {
@@ -106,7 +110,11 @@
           "locked": "Vergrendeld",
           "error": "Fout",
           "no_error": "Geen fout",
-          "offline": "Offline"
+          "offline": "Offline",
+          "searching_home": "Zoekt laadstation",
+          "searching_zone": "Zoekt zone",
+          "remote_control": "Afstandsbediening",
+          "zoning": "Zonetraining"
         }
       },
       "rssi": {

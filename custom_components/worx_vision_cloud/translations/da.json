@@ -87,7 +87,11 @@
           "locked": "Låst",
           "error": "Fejl",
           "no_error": "Ingen fejl",
-          "offline": "Offline"
+          "offline": "Offline",
+          "searching_home": "Søger efter ladestation",
+          "searching_zone": "Søger zone",
+          "remote_control": "Fjernbetjening",
+          "zoning": "Zonetræning"
         }
       },
       "error": {
@@ -106,7 +110,11 @@
           "locked": "Låst",
           "error": "Fejl",
           "no_error": "Ingen fejl",
-          "offline": "Offline"
+          "offline": "Offline",
+          "searching_home": "Søger efter ladestation",
+          "searching_zone": "Søger zone",
+          "remote_control": "Fjernbetjening",
+          "zoning": "Zonetræning"
         }
       },
       "rssi": {

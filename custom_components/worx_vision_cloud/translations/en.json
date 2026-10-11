@@ -87,7 +87,11 @@
           "locked": "Locked",
           "error": "Error",
           "no_error": "No error",
-          "offline": "Offline"
+          "offline": "Offline",
+          "searching_home": "Searching for the dock",
+          "searching_zone": "Searching for zone",
+          "remote_control": "Remote control",
+          "zoning": "Zone training"
         }
       },
       "error": {
@@ -106,7 +110,11 @@
           "locked": "Locked",
           "error": "Error",
           "no_error": "No error",
-          "offline": "Offline"
+          "offline": "Offline",
+          "searching_home": "Searching for the dock",
+          "searching_zone": "Searching for zone",
+          "remote_control": "Remote control",
+          "zoning": "Zone training"
         }
       },
       "rssi": {
