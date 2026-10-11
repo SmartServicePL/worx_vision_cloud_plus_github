@@ -148,7 +148,8 @@ provides these separate values:
 - **Estimated area/progress**: locally observed blade-active time multiplied by
   the mower's long-term covered-area efficiency.
 
-Cloud statistics are refreshed every five minutes but can still lag because the
+Cloud statistics are refreshed whenever pyworxcloud refreshes its cloud data
+(every 5-10 minutes), with a 15-minute fallback, but can still lag because the
 private Worx endpoint itself may publish old values. The estimated sensors move
 while the mower works, but they are estimates rather than measurements. Covered
 area includes overlapping passes, so it can exceed the physical lawn area. On

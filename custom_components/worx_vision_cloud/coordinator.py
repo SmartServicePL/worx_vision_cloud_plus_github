@@ -57,6 +57,11 @@ RTK_ADDRESS_USER_AGENT = (
     "(https://github.com/SmartServicePL/worx_vision_cloud_plus_github)"
 )
 PRODUCT_ITEM_CACHE_TTL = timedelta(minutes=5)
+# pyworxcloud refreshes its REST data every 5-10 minutes on its own and then
+# fires LandroidEvent.API, which already triggers a coordinator refresh. The
+# periodic interval is only a fallback for when those events stop, so it does
+# not need to add a second round of REST requests every 5 minutes.
+COORDINATOR_UPDATE_INTERVAL = timedelta(minutes=15)
 FIRMWARE_UPGRADE_CACHE_TTL = timedelta(minutes=30)
 STATISTICS_STORAGE_VERSION = 1
 STATISTICS_SAVE_DELAY = 60
@@ -105,7 +110,7 @@ class WorxVisionCoordinator(DataUpdateCoordinator[dict[str, DeviceHandler]]):
             _LOGGER,
             config_entry=config_entry,
             name=DOMAIN,
-            update_interval=PRODUCT_ITEM_CACHE_TTL,
+            update_interval=COORDINATOR_UPDATE_INTERVAL,
             always_update=True,
         )
         self.cloud = cloud
