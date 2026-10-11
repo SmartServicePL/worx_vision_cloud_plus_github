@@ -10,7 +10,6 @@ from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
-from .const import DOMAIN
 from .entity import WorxVisionEntity
 from .helpers import get_dict_value, rtk_map_attributes
 
@@ -69,7 +68,7 @@ async def async_setup_entry(
     async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
     """Set up select entities."""
-    runtime = hass.data[DOMAIN][entry.entry_id]
+    runtime = entry.runtime_data
     async_add_entities(
         [
             OneTimeMowingZonesSelect(runtime.coordinator, entry, serial_number)

@@ -71,6 +71,9 @@ class WorxVisionRuntimeData:
     expose_raw: bool = False
 
 
+type WorxConfigEntry = ConfigEntry[WorxVisionRuntimeData]
+
+
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     """Register integration services.
 
@@ -83,7 +86,7 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     return True
 
 
-async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+async def async_setup_entry(hass: HomeAssistant, entry: WorxConfigEntry) -> bool:
     """Set up Worx Vision Cloud Plus from a config entry."""
     username = entry.data[CONF_EMAIL]
     password = entry.data[CONF_PASSWORD]
@@ -133,7 +136,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     if not expose_raw:
         _async_remove_raw_entities(hass, coordinator.data, entry)
 
-    hass.data.setdefault(DOMAIN, {})[entry.entry_id] = WorxVisionRuntimeData(
+    entry.runtime_data = WorxVisionRuntimeData(
         cloud=cloud,
         coordinator=coordinator,
         expose_raw=expose_raw,
@@ -144,38 +147,47 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     return True
 
 
-async def _async_entry_updated(hass: HomeAssistant, entry: ConfigEntry) -> None:
+async def _async_entry_updated(hass: HomeAssistant, entry: WorxConfigEntry) -> None:
     """Reload the entry when the raw-entity option changed.
 
     Other entry updates (for example a new password from re-authentication)
     reload the entry on their own and must not trigger a second reload.
     """
-    runtime: WorxVisionRuntimeData | None = hass.data.get(DOMAIN, {}).get(
-        entry.entry_id
-    )
+    runtime: WorxVisionRuntimeData | None = getattr(entry, "runtime_data", None)
     if runtime is None or runtime.expose_raw == raw_entities_enabled(entry):
         return
     await hass.config_entries.async_reload(entry.entry_id)
 
 
-async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+async def async_unload_entry(hass: HomeAssistant, entry: WorxConfigEntry) -> bool:
     """Unload a config entry."""
     unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
     if not unload_ok:
         return False
 
-    runtime: WorxVisionRuntimeData | None = hass.data.get(DOMAIN, {}).pop(
-        entry.entry_id, None
-    )
-
+    runtime: WorxVisionRuntimeData | None = getattr(entry, "runtime_data", None)
     if runtime is not None:
         await runtime.coordinator.async_shutdown()
         await _safe_disconnect(runtime.cloud)
 
-    if not hass.data.get(DOMAIN):
-        hass.data.pop(DOMAIN, None)
-
     return unload_ok
+
+
+def _loaded_runtime_data(
+    hass: HomeAssistant, preferred_entry_id: str | None, serial_number: str
+) -> WorxVisionRuntimeData | None:
+    """Return runtime data of the loaded entry that manages the given mower."""
+    entries = sorted(
+        hass.config_entries.async_entries(DOMAIN),
+        key=lambda item: item.entry_id != preferred_entry_id,
+    )
+    for config_entry in entries:
+        if config_entry.state is not ConfigEntryState.LOADED:
+            continue
+        runtime = getattr(config_entry, "runtime_data", None)
+        if runtime is not None and serial_number in (runtime.coordinator.data or {}):
+            return runtime
+    return None
 
 
 def _service_zone_ids(value: Any) -> list[int]:
@@ -224,19 +236,9 @@ def _async_setup_services(hass: HomeAssistant) -> None:
             )
 
         serial_number = entity_entry.unique_id.removesuffix("_mower")
-        runtime_data = hass.data.get(DOMAIN, {}).get(entity_entry.config_entry_id)
-        if (
-            runtime_data is None
-            or serial_number not in runtime_data.coordinator.data
-        ):
-            runtime_data = next(
-                (
-                    data
-                    for data in hass.data.get(DOMAIN, {}).values()
-                    if serial_number in data.coordinator.data
-                ),
-                None,
-            )
+        runtime_data = _loaded_runtime_data(
+            hass, entity_entry.config_entry_id, serial_number
+        )
         if runtime_data is None:
             config_entry = (
                 hass.config_entries.async_get_entry(entity_entry.config_entry_id)

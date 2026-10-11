@@ -415,7 +415,8 @@ class ServiceTests(unittest.IsolatedAsyncioTestCase):
             config_entries=SimpleNamespace(
                 async_get_entry=lambda entry_id: entry
                 if entry_id == entry.entry_id
-                else None
+                else None,
+                async_entries=lambda domain: [entry] if domain == CONST.DOMAIN else [],
             ),
         )
 
@@ -461,11 +462,10 @@ class ServiceTests(unittest.IsolatedAsyncioTestCase):
             async def async_start_one_time_mowing(self, *args) -> None:
                 received.append(args)
 
-        hass.data[CONST.DOMAIN] = {
-            entry.entry_id: INTEGRATION.WorxVisionRuntimeData(
-                cloud=None, coordinator=Coordinator()
-            )
-        }
+        entry.runtime_data = INTEGRATION.WorxVisionRuntimeData(
+            cloud=None, coordinator=Coordinator()
+        )
+        entry.state = ha_stubs.ConfigEntryState.LOADED
         handler = hass.services.handlers[
             (CONST.DOMAIN, CONST.SERVICE_START_ONE_TIME_MOWING)
         ]

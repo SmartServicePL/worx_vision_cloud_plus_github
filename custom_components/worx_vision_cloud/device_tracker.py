@@ -9,7 +9,6 @@ from homeassistant.const import ATTR_BATTERY_LEVEL
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
-from .const import DOMAIN
 from .entity import WorxVisionEntity
 from .helpers import get_dict_value, rtk_location_attributes, rtk_position
 
@@ -20,7 +19,7 @@ async def async_setup_entry(
     async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
     """Set up RTK location trackers."""
-    runtime = hass.data[DOMAIN][entry.entry_id]
+    runtime = entry.runtime_data
     coordinator = runtime.coordinator
 
     async_add_entities(

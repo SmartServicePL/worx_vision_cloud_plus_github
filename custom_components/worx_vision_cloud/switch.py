@@ -11,7 +11,6 @@ from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
-from .const import DOMAIN
 from .entity import WorxVisionEntity
 from .helpers import get_dict_value, get_nested_value
 
@@ -368,7 +367,7 @@ async def async_setup_entry(
     async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
     """Set up switches."""
-    runtime = hass.data[DOMAIN][entry.entry_id]
+    runtime = entry.runtime_data
     entities: list[SwitchEntity] = [
         WorxVisionSwitch(runtime.coordinator, entry, serial_number, description)
         for serial_number in runtime.coordinator.data

@@ -16,7 +16,6 @@ from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
 from .const import (
-    DOMAIN,
     MAINTENANCE_BATTERY_CYCLES,
     MAINTENANCE_BLADE_DAYS,
     MAINTENANCE_BLADE_HOURS,
@@ -338,7 +337,7 @@ async def async_setup_entry(
     async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
     """Set up number entities."""
-    runtime = hass.data[DOMAIN][entry.entry_id]
+    runtime = entry.runtime_data
     entities: list[NumberEntity] = [
         WorxVisionNumber(runtime.coordinator, entry, serial_number, description)
         for serial_number in runtime.coordinator.data

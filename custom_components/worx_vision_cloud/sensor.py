@@ -30,7 +30,6 @@ from .const import (
     ATTR_RAW_PATH,
     ATTR_RAW_SOURCE,
     raw_entities_enabled,
-    DOMAIN,
     PERCENTAGE_UNIT,
 )
 from .entity import WorxVisionEntity
@@ -966,7 +965,7 @@ async def async_setup_entry(
     async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
     """Set up sensors."""
-    runtime = hass.data[DOMAIN][entry.entry_id]
+    runtime = entry.runtime_data
     coordinator = runtime.coordinator
 
     entities: list[SensorEntity] = []
