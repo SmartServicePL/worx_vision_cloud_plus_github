@@ -15,7 +15,14 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
-from .const import DOMAIN, PERCENTAGE_UNIT
+from .const import (
+    DOMAIN,
+    MAINTENANCE_BATTERY_CYCLES,
+    MAINTENANCE_BLADE_DAYS,
+    MAINTENANCE_BLADE_HOURS,
+    MAINTENANCE_LIMITS,
+    PERCENTAGE_UNIT,
+)
 from .entity import WorxVisionEntity
 from .helpers import get_dict_value, get_nested_value
 
@@ -279,6 +286,52 @@ NUMBERS: tuple[WorxNumberDescription, ...] = (
 )
 
 
+
+@dataclass(frozen=True, kw_only=True)
+class MaintenanceNumberDescription(NumberEntityDescription):
+    """Local maintenance interval stored by the integration."""
+
+    option: str
+
+
+MAINTENANCE_NUMBERS: tuple[MaintenanceNumberDescription, ...] = (
+    MaintenanceNumberDescription(
+        key="blade_service_interval",
+        translation_key="blade_service_interval",
+        option=MAINTENANCE_BLADE_HOURS,
+        icon="mdi:saw-blade",
+        entity_category=EntityCategory.CONFIG,
+        native_min_value=MAINTENANCE_LIMITS[MAINTENANCE_BLADE_HOURS][0],
+        native_max_value=MAINTENANCE_LIMITS[MAINTENANCE_BLADE_HOURS][1],
+        native_step=1,
+        native_unit_of_measurement=UnitOfTime.HOURS,
+        mode=NumberMode.BOX,
+    ),
+    MaintenanceNumberDescription(
+        key="blade_service_interval_days",
+        translation_key="blade_service_interval_days",
+        option=MAINTENANCE_BLADE_DAYS,
+        icon="mdi:calendar-clock",
+        entity_category=EntityCategory.CONFIG,
+        native_min_value=MAINTENANCE_LIMITS[MAINTENANCE_BLADE_DAYS][0],
+        native_max_value=MAINTENANCE_LIMITS[MAINTENANCE_BLADE_DAYS][1],
+        native_step=1,
+        native_unit_of_measurement=UnitOfTime.DAYS,
+        mode=NumberMode.BOX,
+    ),
+    MaintenanceNumberDescription(
+        key="battery_service_interval",
+        translation_key="battery_service_interval",
+        option=MAINTENANCE_BATTERY_CYCLES,
+        icon="mdi:battery-sync",
+        entity_category=EntityCategory.CONFIG,
+        native_min_value=MAINTENANCE_LIMITS[MAINTENANCE_BATTERY_CYCLES][0],
+        native_max_value=MAINTENANCE_LIMITS[MAINTENANCE_BATTERY_CYCLES][1],
+        native_step=10,
+        mode=NumberMode.BOX,
+    ),
+)
+
 async def async_setup_entry(
     hass: HomeAssistant,
     entry: ConfigEntry,
@@ -294,6 +347,11 @@ async def async_setup_entry(
     entities.extend(
         OneTimeMowingRuntimeNumber(runtime.coordinator, entry, serial_number)
         for serial_number in runtime.coordinator.data
+    )
+    entities.extend(
+        WorxMaintenanceNumber(runtime.coordinator, entry, serial_number, description)
+        for serial_number in runtime.coordinator.data
+        for description in MAINTENANCE_NUMBERS
     )
     async_add_entities(entities)
 
@@ -370,4 +428,34 @@ class OneTimeMowingRuntimeNumber(WorxVisionEntity, NumberEntity):
         """Set configured runtime."""
         await self.coordinator.async_set_one_time_mowing_runtime(
             self._serial_number, round(value)
+        )
+
+
+class WorxMaintenanceNumber(WorxVisionEntity, NumberEntity):
+    """Local per-mower maintenance interval (not sent to the mower)."""
+
+    entity_description: MaintenanceNumberDescription
+
+    def __init__(
+        self,
+        coordinator,
+        entry,
+        serial_number: str,
+        description: MaintenanceNumberDescription,
+    ) -> None:
+        """Initialize maintenance interval number."""
+        self.entity_description = description
+        super().__init__(coordinator, entry, serial_number, description.key)
+
+    @property
+    def native_value(self) -> float:
+        """Return the configured interval."""
+        return self.coordinator.maintenance_threshold(
+            self._serial_number, self.entity_description.option
+        )
+
+    async def async_set_native_value(self, value: float) -> None:
+        """Store a new interval."""
+        await self.coordinator.async_set_maintenance_threshold(
+            self._serial_number, self.entity_description.option, value
         )

@@ -31,6 +31,17 @@
       "reauth_successful": "L'identifiant a été mis à jour."
     }
   },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Options",
+        "description": "Les entités brutes servent au diagnostic. Désactiver l'option les supprime.",
+        "data": {
+          "expose_raw_entities": "Exposer tous les champs bruts du payload en tant qu'entités"
+        }
+      }
+    }
+  },
   "services": {
     "start_one_time_mowing": {
       "name": "Démarrer une tonte unique",
@@ -290,6 +301,12 @@
       },
       "save_hedgehogs": {
         "name": "Sauvons les hérissons"
+      },
+      "blade_service_due": {
+        "name": "Remplacement des lames requis"
+      },
+      "battery_service_due": {
+        "name": "Entretien de la batterie requis"
       }
     },
     "switch": {
@@ -347,6 +364,15 @@
       },
       "one_time_mowing_runtime": {
         "name": "Durée de la tonte unique"
+      },
+      "blade_service_interval": {
+        "name": "Intervalle d'entretien des lames"
+      },
+      "blade_service_interval_days": {
+        "name": "Intervalle d'entretien des lames (jours)"
+      },
+      "battery_service_interval": {
+        "name": "Intervalle d'entretien de la batterie"
       }
     },
     "select": {
@@ -373,6 +399,32 @@
       "rtk_position": {
         "name": "Position RTK"
       }
+    }
+  },
+  "exceptions": {
+    "mqtt_not_ready": {
+      "message": "La connexion au cloud Worx n'est pas prête. Réessayez dans un instant."
+    },
+    "cloud_auth_failed": {
+      "message": "Worx a refusé l'identifiant enregistré. Reconnectez-vous dans les paramètres de l'intégration."
+    },
+    "cloud_rate_limited": {
+      "message": "Limite de requêtes du cloud Worx atteinte. Réessayez plus tard."
+    },
+    "cloud_command_timeout": {
+      "message": "Le cloud Worx n'a pas confirmé la commande à temps. La tondeuse peut quand même l'exécuter."
+    },
+    "cloud_command_failed": {
+      "message": "Le cloud Worx n'a pas accepté la commande : {error}"
+    },
+    "mower_offline": {
+      "message": "La tondeuse est hors ligne ; aucune commande n'a été envoyée."
+    },
+    "invalid_mower_entity": {
+      "message": "{entity_id} n'est pas une tondeuse Worx Vision Cloud PLUS. Choisissez son entité lawn_mower."
+    },
+    "integration_not_loaded": {
+      "message": "Worx Vision Cloud PLUS ({entry}) n'est pas chargée (état : {state}). Vérifiez l'intégration et la connexion au cloud Worx."
     }
   }
 }

@@ -31,6 +31,17 @@
       "reauth_successful": "L'accesso è stato aggiornato."
     }
   },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Opzioni",
+        "description": "Le entità grezze servono alla diagnostica. Disattivando l'opzione vengono rimosse.",
+        "data": {
+          "expose_raw_entities": "Esponi tutti i campi grezzi del payload come entità"
+        }
+      }
+    }
+  },
   "services": {
     "start_one_time_mowing": {
       "name": "Avvia taglio singolo",
@@ -290,6 +301,12 @@
       },
       "save_hedgehogs": {
         "name": "Salva i ricci"
+      },
+      "blade_service_due": {
+        "name": "Sostituzione lame necessaria"
+      },
+      "battery_service_due": {
+        "name": "Manutenzione batteria necessaria"
       }
     },
     "switch": {
@@ -347,6 +364,15 @@
       },
       "one_time_mowing_runtime": {
         "name": "Durata taglio singolo"
+      },
+      "blade_service_interval": {
+        "name": "Intervallo manutenzione lame"
+      },
+      "blade_service_interval_days": {
+        "name": "Intervallo manutenzione lame (giorni)"
+      },
+      "battery_service_interval": {
+        "name": "Intervallo manutenzione batteria"
       }
     },
     "select": {
@@ -373,6 +399,32 @@
       "rtk_position": {
         "name": "Posizione RTK"
       }
+    }
+  },
+  "exceptions": {
+    "mqtt_not_ready": {
+      "message": "La connessione al cloud Worx non è pronta. Riprova tra poco."
+    },
+    "cloud_auth_failed": {
+      "message": "Worx ha rifiutato l'accesso salvato. Accedi di nuovo nelle impostazioni dell'integrazione."
+    },
+    "cloud_rate_limited": {
+      "message": "Raggiunto il limite di richieste del cloud Worx. Riprova più tardi."
+    },
+    "cloud_command_timeout": {
+      "message": "Il cloud Worx non ha confermato il comando in tempo. Il robot potrebbe comunque eseguirlo."
+    },
+    "cloud_command_failed": {
+      "message": "Il cloud Worx non ha accettato il comando: {error}"
+    },
+    "mower_offline": {
+      "message": "Il robot è offline; nessun comando inviato."
+    },
+    "invalid_mower_entity": {
+      "message": "{entity_id} non è un robot Worx Vision Cloud PLUS. Seleziona la sua entità lawn_mower."
+    },
+    "integration_not_loaded": {
+      "message": "Worx Vision Cloud PLUS ({entry}) non è caricata (stato: {state}). Controlla l'integrazione e la connessione al cloud Worx."
     }
   }
 }

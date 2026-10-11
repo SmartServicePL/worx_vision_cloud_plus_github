@@ -31,6 +31,17 @@
       "reauth_successful": "Inloggningen har uppdaterats."
     }
   },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Alternativ",
+        "description": "Råa entiteter är avsedda för felsökning. Om alternativet stängs av tas de bort.",
+        "data": {
+          "expose_raw_entities": "Exponera alla råa payloadfält som entiteter"
+        }
+      }
+    }
+  },
   "services": {
     "start_one_time_mowing": {
       "name": "Starta engångsklippning",
@@ -290,6 +301,12 @@
       },
       "save_hedgehogs": {
         "name": "Rädda igelkottarna"
+      },
+      "blade_service_due": {
+        "name": "Knivbyte krävs"
+      },
+      "battery_service_due": {
+        "name": "Batteriservice krävs"
       }
     },
     "switch": {
@@ -347,6 +364,15 @@
       },
       "one_time_mowing_runtime": {
         "name": "Varaktighet för engångsklippning"
+      },
+      "blade_service_interval": {
+        "name": "Serviceintervall för knivar"
+      },
+      "blade_service_interval_days": {
+        "name": "Serviceintervall för knivar (dagar)"
+      },
+      "battery_service_interval": {
+        "name": "Serviceintervall för batteri"
       }
     },
     "select": {
@@ -373,6 +399,32 @@
       "rtk_position": {
         "name": "RTK-position"
       }
+    }
+  },
+  "exceptions": {
+    "mqtt_not_ready": {
+      "message": "Anslutningen till Worx-molnet är inte redo. Försök igen om en stund."
+    },
+    "cloud_auth_failed": {
+      "message": "Worx avvisade den sparade inloggningen. Logga in igen i integrationens inställningar."
+    },
+    "cloud_rate_limited": {
+      "message": "Worx-molnets gräns för förfrågningar har nåtts. Försök igen senare."
+    },
+    "cloud_command_timeout": {
+      "message": "Worx-molnet bekräftade inte kommandot i tid. Robotgräsklipparen kan ändå utföra det."
+    },
+    "cloud_command_failed": {
+      "message": "Worx-molnet accepterade inte kommandot: {error}"
+    },
+    "mower_offline": {
+      "message": "Robotgräsklipparen är offline; inget kommando skickades."
+    },
+    "invalid_mower_entity": {
+      "message": "{entity_id} är ingen Worx Vision Cloud PLUS-robotgräsklippare. Välj dess lawn_mower-entitet."
+    },
+    "integration_not_loaded": {
+      "message": "Worx Vision Cloud PLUS ({entry}) är inte laddad (status: {state}). Kontrollera integrationen och anslutningen till Worx-molnet."
     }
   }
 }

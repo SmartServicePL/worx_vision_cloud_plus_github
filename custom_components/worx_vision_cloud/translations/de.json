@@ -31,6 +31,17 @@
       "reauth_successful": "Die Anmeldedaten wurden aktualisiert."
     }
   },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Optionen",
+        "description": "Roh-Entitäten dienen der Fehlersuche. Beim Ausschalten werden sie entfernt.",
+        "data": {
+          "expose_raw_entities": "Alle Roh-Payload-Felder als Entitäten bereitstellen"
+        }
+      }
+    }
+  },
   "services": {
     "start_one_time_mowing": {
       "name": "Einmaliges Mähen starten",
@@ -290,6 +301,12 @@
       },
       "save_hedgehogs": {
         "name": "Igel retten"
+      },
+      "blade_service_due": {
+        "name": "Messerwechsel fällig"
+      },
+      "battery_service_due": {
+        "name": "Akkuwartung fällig"
       }
     },
     "switch": {
@@ -347,6 +364,15 @@
       },
       "one_time_mowing_runtime": {
         "name": "Laufzeit für einmaliges Mähen"
+      },
+      "blade_service_interval": {
+        "name": "Messer-Wartungsintervall"
+      },
+      "blade_service_interval_days": {
+        "name": "Messer-Wartungsintervall (Tage)"
+      },
+      "battery_service_interval": {
+        "name": "Akku-Wartungsintervall"
       }
     },
     "select": {
@@ -373,6 +399,32 @@
       "rtk_position": {
         "name": "RTK-Position"
       }
+    }
+  },
+  "exceptions": {
+    "mqtt_not_ready": {
+      "message": "Die Verbindung zur Worx-Cloud ist nicht bereit. Bitte gleich erneut versuchen."
+    },
+    "cloud_auth_failed": {
+      "message": "Worx hat die gespeicherte Anmeldung abgelehnt. Bitte in den Integrationseinstellungen neu anmelden."
+    },
+    "cloud_rate_limited": {
+      "message": "Anfragelimit der Worx-Cloud erreicht. Bitte später erneut versuchen."
+    },
+    "cloud_command_timeout": {
+      "message": "Die Worx-Cloud hat den Befehl nicht rechtzeitig bestätigt. Der Mäher kann ihn trotzdem ausführen."
+    },
+    "cloud_command_failed": {
+      "message": "Die Worx-Cloud hat den Befehl nicht angenommen: {error}"
+    },
+    "mower_offline": {
+      "message": "Der Mäher ist offline; es wurde kein Befehl gesendet."
+    },
+    "invalid_mower_entity": {
+      "message": "{entity_id} ist kein Worx Vision Cloud PLUS Mäher. Bitte die lawn_mower-Entität wählen."
+    },
+    "integration_not_loaded": {
+      "message": "Worx Vision Cloud PLUS ({entry}) ist nicht geladen (Status: {state}). Integration und Worx-Cloud-Verbindung prüfen."
     }
   }
 }

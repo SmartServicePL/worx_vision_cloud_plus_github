@@ -23,6 +23,7 @@ from .const import (
     DEFAULT_EXPOSE_RAW,
     DEFAULT_VERIFY_SSL,
     DOMAIN,
+    raw_entities_enabled,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -67,6 +68,15 @@ class WorxVisionConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Handle a config flow for Worx Vision Cloud Plus."""
 
     VERSION = 1
+
+    @staticmethod
+    @callback
+    def async_get_options_flow(
+        config_entry: config_entries.ConfigEntry,
+    ) -> WorxVisionOptionsFlow:
+        """Return the options flow."""
+        del config_entry
+        return WorxVisionOptionsFlow()
 
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
@@ -161,4 +171,29 @@ class WorxVisionConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     default=defaults.get(CONF_EXPOSE_RAW, DEFAULT_EXPOSE_RAW),
                 ): bool,
             }
+        )
+
+
+class WorxVisionOptionsFlow(config_entries.OptionsFlow):
+    """Change options of an existing Worx Vision Cloud PLUS entry."""
+
+    async def async_step_init(
+        self, user_input: dict[str, Any] | None = None
+    ) -> config_entries.ConfigFlowResult:
+        """Choose whether raw payload entities are created."""
+        if user_input is not None:
+            return self.async_create_entry(
+                data={CONF_EXPOSE_RAW: bool(user_input[CONF_EXPOSE_RAW])}
+            )
+
+        return self.async_show_form(
+            step_id="init",
+            data_schema=vol.Schema(
+                {
+                    vol.Optional(
+                        CONF_EXPOSE_RAW,
+                        default=raw_entities_enabled(self.config_entry),
+                    ): bool,
+                }
+            ),
         )

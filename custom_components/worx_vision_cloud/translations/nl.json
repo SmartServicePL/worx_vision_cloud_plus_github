@@ -31,6 +31,17 @@
       "reauth_successful": "De aanmelding is bijgewerkt."
     }
   },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Opties",
+        "description": "Ruwe entiteiten zijn bedoeld voor foutopsporing. Uitschakelen verwijdert ze.",
+        "data": {
+          "expose_raw_entities": "Alle ruwe payloadvelden als entiteiten beschikbaar maken"
+        }
+      }
+    }
+  },
   "services": {
     "start_one_time_mowing": {
       "name": "Eenmalig maaien starten",
@@ -290,6 +301,12 @@
       },
       "save_hedgehogs": {
         "name": "Egels redden"
+      },
+      "blade_service_due": {
+        "name": "Messen vervangen nodig"
+      },
+      "battery_service_due": {
+        "name": "Accuonderhoud nodig"
       }
     },
     "switch": {
@@ -347,6 +364,15 @@
       },
       "one_time_mowing_runtime": {
         "name": "Duur eenmalig maaien"
+      },
+      "blade_service_interval": {
+        "name": "Onderhoudsinterval messen"
+      },
+      "blade_service_interval_days": {
+        "name": "Onderhoudsinterval messen (dagen)"
+      },
+      "battery_service_interval": {
+        "name": "Onderhoudsinterval accu"
       }
     },
     "select": {
@@ -373,6 +399,32 @@
       "rtk_position": {
         "name": "RTK-positie"
       }
+    }
+  },
+  "exceptions": {
+    "mqtt_not_ready": {
+      "message": "De verbinding met de Worx-cloud is niet gereed. Probeer het zo opnieuw."
+    },
+    "cloud_auth_failed": {
+      "message": "Worx heeft de opgeslagen login geweigerd. Meld je opnieuw aan in de integratie-instellingen."
+    },
+    "cloud_rate_limited": {
+      "message": "Verzoeklimiet van de Worx-cloud bereikt. Probeer het later opnieuw."
+    },
+    "cloud_command_timeout": {
+      "message": "De Worx-cloud heeft het commando niet op tijd bevestigd. De maaier kan het toch uitvoeren."
+    },
+    "cloud_command_failed": {
+      "message": "De Worx-cloud heeft het commando niet geaccepteerd: {error}"
+    },
+    "mower_offline": {
+      "message": "De maaier is offline; er is geen commando verzonden."
+    },
+    "invalid_mower_entity": {
+      "message": "{entity_id} is geen Worx Vision Cloud PLUS maaier. Kies de lawn_mower-entiteit."
+    },
+    "integration_not_loaded": {
+      "message": "Worx Vision Cloud PLUS ({entry}) is niet geladen (status: {state}). Controleer de integratie en de verbinding met de Worx-cloud."
     }
   }
 }

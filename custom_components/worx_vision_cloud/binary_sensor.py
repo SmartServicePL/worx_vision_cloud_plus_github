@@ -17,8 +17,7 @@ from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from .const import (
     ATTR_RAW_PATH,
     ATTR_RAW_SOURCE,
-    CONF_EXPOSE_RAW,
-    DEFAULT_EXPOSE_RAW,
+    raw_entities_enabled,
     DOMAIN,
 )
 from .entity import WorxVisionEntity
@@ -387,6 +386,23 @@ BINARY_SENSORS: tuple[WorxBinarySensorDescription, ...] = (
 )
 
 
+MAINTENANCE_DUE_SENSORS: tuple[BinarySensorEntityDescription, ...] = (
+    BinarySensorEntityDescription(
+        key="blade_service_due",
+        translation_key="blade_service_due",
+        icon="mdi:saw-blade",
+        device_class=BinarySensorDeviceClass.PROBLEM,
+        entity_category=EntityCategory.DIAGNOSTIC,
+    ),
+    BinarySensorEntityDescription(
+        key="battery_service_due",
+        translation_key="battery_service_due",
+        icon="mdi:battery-sync",
+        device_class=BinarySensorDeviceClass.PROBLEM,
+        entity_category=EntityCategory.DIAGNOSTIC,
+    ),
+)
+
 async def async_setup_entry(
     hass: HomeAssistant,
     entry: ConfigEntry,
@@ -404,10 +420,16 @@ async def async_setup_entry(
             WorxVisionBinarySensor(coordinator, entry, serial_number, description)
             for description in BINARY_SENSORS
         )
+        entities.extend(
+            WorxMaintenanceDueBinarySensor(
+                coordinator, entry, serial_number, description
+            )
+            for description in MAINTENANCE_DUE_SENSORS
+        )
 
     def add_raw_entities() -> None:
         raw_entities: list[BinarySensorEntity] = []
-        if not entry.data.get(CONF_EXPOSE_RAW, DEFAULT_EXPOSE_RAW):
+        if not raw_entities_enabled(entry):
             return
 
         for serial_number, device in (coordinator.data or {}).items():
@@ -502,3 +524,50 @@ class WorxVisionRawBinarySensor(WorxVisionEntity, BinarySensorEntity):
             ATTR_RAW_PATH: self._raw_path,
             ATTR_RAW_SOURCE: self._raw_path.split(".", 1)[0],
         }
+
+
+class WorxMaintenanceDueBinarySensor(WorxVisionEntity, BinarySensorEntity):
+    """Blade or battery service due, using the local maintenance intervals."""
+
+    def __init__(
+        self,
+        coordinator,
+        entry,
+        serial_number: str,
+        description: BinarySensorEntityDescription,
+    ) -> None:
+        """Initialize the maintenance binary sensor."""
+        self.entity_description = description
+        super().__init__(coordinator, entry, serial_number, description.key)
+
+    @property
+    def is_on(self) -> bool | None:
+        """Return whether this service is due."""
+        return self.coordinator.maintenance_summary(self._serial_number).get(
+            self.entity_description.key
+        )
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Return the counter and interval used for the decision."""
+        summary = self.coordinator.maintenance_summary(self._serial_number)
+        if self.entity_description.key == "blade_service_due":
+            attrs = {
+                "blade_runtime_since_reset": summary.get("blade_runtime_since_reset"),
+                "blade_service_threshold_hours": summary.get(
+                    "blade_service_threshold_hours"
+                ),
+                "blade_service_interval_days": summary.get(
+                    "blade_service_interval_days"
+                ),
+            }
+        else:
+            attrs = {
+                "battery_cycles_since_reset": summary.get(
+                    "battery_cycles_since_reset"
+                ),
+                "battery_service_threshold_cycles": summary.get(
+                    "battery_service_threshold_cycles"
+                ),
+            }
+        return {key: value for key, value in attrs.items() if value is not None}

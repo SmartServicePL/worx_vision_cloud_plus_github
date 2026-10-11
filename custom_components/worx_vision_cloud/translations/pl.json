@@ -31,6 +31,17 @@
       "reauth_successful": "Dane logowania zostały zaktualizowane."
     }
   },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Opcje",
+        "description": "Surowe encje służą do diagnostyki. Wyłączenie opcji usuwa je.",
+        "data": {
+          "expose_raw_entities": "Wystaw wszystkie surowe pola payload jako encje"
+        }
+      }
+    }
+  },
   "services": {
     "start_one_time_mowing": {
       "name": "Uruchom koszenie jednorazowe",
@@ -290,6 +301,12 @@
       },
       "save_hedgehogs": {
         "name": "Ochrona jeży"
+      },
+      "blade_service_due": {
+        "name": "Wymagana wymiana noży"
+      },
+      "battery_service_due": {
+        "name": "Wymagany serwis baterii"
       }
     },
     "switch": {
@@ -347,6 +364,15 @@
       },
       "one_time_mowing_runtime": {
         "name": "Czas koszenia jednorazowego"
+      },
+      "blade_service_interval": {
+        "name": "Interwał serwisu noży"
+      },
+      "blade_service_interval_days": {
+        "name": "Interwał serwisu noży (dni)"
+      },
+      "battery_service_interval": {
+        "name": "Interwał serwisu baterii"
       }
     },
     "select": {
@@ -373,6 +399,32 @@
       "rtk_position": {
         "name": "Pozycja RTK"
       }
+    }
+  },
+  "exceptions": {
+    "mqtt_not_ready": {
+      "message": "Połączenie z chmurą Worx nie jest gotowe. Spróbuj ponownie za chwilę."
+    },
+    "cloud_auth_failed": {
+      "message": "Worx odrzucił zapisane dane logowania. Zaloguj się ponownie w ustawieniach integracji."
+    },
+    "cloud_rate_limited": {
+      "message": "Przekroczono limit zapytań chmury Worx. Spróbuj później."
+    },
+    "cloud_command_timeout": {
+      "message": "Chmura Worx nie potwierdziła polecenia na czas. Kosiarka może je mimo to wykonać."
+    },
+    "cloud_command_failed": {
+      "message": "Chmura Worx nie przyjęła polecenia: {error}"
+    },
+    "mower_offline": {
+      "message": "Kosiarka jest offline; nie wysłano polecenia."
+    },
+    "invalid_mower_entity": {
+      "message": "{entity_id} nie jest kosiarką Worx Vision Cloud PLUS. Wybierz jej encję lawn_mower."
+    },
+    "integration_not_loaded": {
+      "message": "Integracja Worx Vision Cloud PLUS ({entry}) nie jest załadowana (stan: {state}). Sprawdź integrację i połączenie z chmurą Worx."
     }
   }
 }

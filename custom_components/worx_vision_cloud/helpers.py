@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from collections.abc import Iterable
-from datetime import date, datetime, time, timedelta
+from datetime import UTC, date, datetime, time, timedelta
 from enum import Enum
 import json
 from math import cos, hypot, radians
@@ -778,3 +778,126 @@ def schedule_attributes(
         "time_extension": get_dict_value(schedules, "time_extension"),
         "next_schedule_start": get_dict_value(schedules, "next_schedule_start"),
     }
+
+
+def _product_item_int(device: Any, key: str) -> int | None:
+    """Return an integer product-item counter, or None when it is missing."""
+    product_item = getattr(device, "_worx_vision_product_item", {}) or {}
+    value = get_dict_value(product_item, key)
+    if value is None:
+        return None
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def _since_reset(device: Any, total_key: str, reset_key: str) -> int | None:
+    """Return a product-item counter value since its last reset marker."""
+    total = _product_item_int(device, total_key)
+    reset = _product_item_int(device, reset_key)
+    if total is None:
+        return None
+    if reset is None:
+        return total
+    return max(0, total - reset)
+
+
+def product_item_datetime(device: Any, key: str) -> datetime | None:
+    """Return a timezone-aware product-item timestamp in UTC."""
+    product_item = getattr(device, "_worx_vision_product_item", {}) or {}
+    value = get_dict_value(product_item, key)
+    if isinstance(value, datetime):
+        return value.astimezone(UTC)
+    if not isinstance(value, str) or not value:
+        return None
+    try:
+        return datetime.fromisoformat(value.replace("Z", "+00:00")).astimezone(UTC)
+    except ValueError:
+        return None
+
+
+def blade_minutes_since_reset(device: Any) -> int | None:
+    """Return blade runtime in minutes since the last blade counter reset."""
+    return _since_reset(device, "blade_work_time", "blade_work_time_reset")
+
+
+def battery_cycles_since_reset(device: Any) -> int | None:
+    """Return battery charge cycles since the last battery counter reset."""
+    return _since_reset(device, "battery_charge_cycles", "battery_charge_cycles_reset")
+
+
+def maintenance_due(
+    blade_minutes: int | float | None,
+    battery_cycles: int | float | None,
+    blade_reset_at: datetime | None,
+    *,
+    blade_hours: int,
+    battery_cycles_limit: int,
+    blade_days: int,
+    now: datetime,
+) -> tuple[bool | None, bool | None]:
+    """Return (blade service due, battery service due).
+
+    None means the mower did not report the counter needed for that decision.
+    The optional day-based blade interval (blade_days > 0) is evaluated
+    against the time of the last blade counter reset.
+    """
+    blade: bool | None = None
+    if blade_minutes is not None:
+        blade = blade_minutes >= blade_hours * 60
+    if blade_days and blade_reset_at is not None:
+        blade = bool(blade) or (now - blade_reset_at).days >= blade_days
+
+    battery: bool | None = None
+    if battery_cycles is not None:
+        battery = battery_cycles >= battery_cycles_limit
+    return blade, battery
+
+
+def maintenance_summary(
+    device: Any,
+    *,
+    blade_hours: int,
+    battery_cycles_limit: int,
+    blade_days: int,
+    now: datetime,
+) -> dict[str, Any]:
+    """Return maintenance counters, thresholds and due flags for one mower."""
+    blade_minutes = blade_minutes_since_reset(device)
+    battery_cycles = battery_cycles_since_reset(device)
+    blade_reset_at = product_item_datetime(device, "blade_work_time_reset_at")
+    battery_reset_at = product_item_datetime(device, "battery_charge_cycles_reset_at")
+    blade_due, battery_due = maintenance_due(
+        blade_minutes,
+        battery_cycles,
+        blade_reset_at,
+        blade_hours=blade_hours,
+        battery_cycles_limit=battery_cycles_limit,
+        blade_days=blade_days,
+        now=now,
+    )
+    return {
+        "blade_runtime_since_reset": blade_minutes,
+        "blade_runtime_reset_at": blade_reset_at,
+        "battery_cycles_since_reset": battery_cycles,
+        "battery_cycles_reset_at": battery_reset_at,
+        "blade_service_threshold_hours": blade_hours,
+        "blade_service_interval_days": blade_days,
+        "battery_service_threshold_cycles": battery_cycles_limit,
+        "blade_service_due": blade_due,
+        "battery_service_due": battery_due,
+    }
+
+
+def maintenance_state(summary: dict[str, Any]) -> str | None:
+    """Return the combined maintenance state (blade service first)."""
+    blade_due = summary.get("blade_service_due")
+    battery_due = summary.get("battery_service_due")
+    if blade_due is None and battery_due is None:
+        return None
+    if blade_due:
+        return "blade_service_due"
+    if battery_due:
+        return "battery_service_due"
+    return "ok"

@@ -289,8 +289,9 @@ async def _set_save_hedgehogs(coordinator, serial_number: str, enabled: bool) ->
         raise HomeAssistantError(
             "The installed pyworxcloud version does not support hedgehog protection"
         )
-    await set_exclude_nights(serial_number, enabled)
-    await coordinator.async_request_device_update(serial_number)
+    await coordinator.async_cloud_command(
+        serial_number, lambda: set_exclude_nights(serial_number, enabled)
+    )
 
 
 async def _set_firmware_auto_upgrade(

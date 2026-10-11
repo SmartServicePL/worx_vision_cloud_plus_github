@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import asyncio
 from collections import deque
+from collections.abc import Awaitable, Callable
 from datetime import UTC, datetime, time, timedelta
 import json
 import logging
@@ -12,18 +13,35 @@ from aiohttp import ClientError, ClientTimeout
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
-from homeassistant.exceptions import HomeAssistantError
+from homeassistant.exceptions import ConfigEntryAuthFailed, HomeAssistantError
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.storage import Store
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.util import dt as dt_util
 
 from pyworxcloud import DeviceHandler, LandroidEvent, WorxCloud
-from pyworxcloud.exceptions import NoConnectionError, TimeoutException
+from pyworxcloud.exceptions import (
+    AuthorizationError,
+    NoConnectionError,
+    TimeoutException,
+    TooManyRequestsError,
+)
 from pyworxcloud.utils.requests import AGET, HEADERS
 
-from .const import DOMAIN
-from .helpers import MOWING_STATUS_IDS, get_dict_value, rtk_position
+from .const import (
+    DOMAIN,
+    MAINTENANCE_BATTERY_CYCLES,
+    MAINTENANCE_BLADE_DAYS,
+    MAINTENANCE_BLADE_HOURS,
+    MAINTENANCE_DEFAULTS,
+    MAINTENANCE_LIMITS,
+)
+from .helpers import (
+    MOWING_STATUS_IDS,
+    get_dict_value,
+    maintenance_summary,
+    rtk_position,
+)
 from .statistics import DailyStatisticsTracker
 
 _LOGGER = logging.getLogger(__name__)
@@ -44,6 +62,12 @@ STATISTICS_STORAGE_VERSION = 1
 STATISTICS_SAVE_DELAY = 60
 OPTIONS_STORAGE_VERSION = 1
 OPTIONS_SAVE_DELAY = 5
+MAINTENANCE_STORAGE_VERSION = 1
+REST_RATE_LIMIT_BACKOFF = timedelta(hours=1)
+POST_COMMAND_REFRESH_TIMEOUT = 10
+# Private pyworxcloud attributes used for the REST statistics, map and firmware
+# requests. They are checked once at setup so a library change is visible.
+PRIVATE_CLOUD_ATTRIBUTES = ("_api",)
 RTK_TRAIL_MAX_POINTS = 300
 DEFAULT_ONE_TIME_MOWING_RUNTIME = 60
 DEFAULT_ONE_TIME_MOWING_EDGE_CUT = False
@@ -111,6 +135,16 @@ class WorxVisionCoordinator(DataUpdateCoordinator[dict[str, DeviceHandler]]):
             str, deque[tuple[datetime, float, float]]
         ] = {}
         self._one_time_mowing_options: dict[str, dict[str, Any]] = {}
+        self._maintenance_store = Store[dict[str, Any]](
+            hass,
+            MAINTENANCE_STORAGE_VERSION,
+            f"{DOMAIN}.{config_entry.entry_id}.maintenance",
+        )
+        self._maintenance: dict[str, dict[str, int]] = {}
+        self._connect_lock = asyncio.Lock()
+        self._connect_generation = 0
+        self._rest_backoff_until: datetime | None = None
+        self._rest_auth_error: AuthorizationError | None = None
 
     async def async_setup(self) -> None:
         """Attach pyworxcloud callbacks."""
@@ -118,6 +152,8 @@ class WorxVisionCoordinator(DataUpdateCoordinator[dict[str, DeviceHandler]]):
             await self._statistics_store.async_load()
         )
         self._restore_one_time_options(await self._options_store.async_load())
+        self._restore_maintenance(await self._maintenance_store.async_load())
+        self._check_private_cloud_api()
 
         def _on_data_received(name: str, device: DeviceHandler) -> None:
             del name
@@ -135,12 +171,13 @@ class WorxVisionCoordinator(DataUpdateCoordinator[dict[str, DeviceHandler]]):
         if self._shutdown_complete:
             return
         self._shutdown_complete = True
-        self.cloud.set_callback(LandroidEvent.DATA_RECEIVED, lambda **_: None)
-        self.cloud.set_callback(LandroidEvent.API, lambda **_: None)
+        self.cloud.set_callback(LandroidEvent.DATA_RECEIVED, lambda *_, **__: None)
+        self.cloud.set_callback(LandroidEvent.API, lambda *_, **__: None)
         self._statistics_save_pending = False
         try:
             await self._statistics_store.async_save(self._statistics.as_dict())
             await self._options_store.async_save(self._one_time_mowing_options)
+            await self._maintenance_store.async_save(self._maintenance)
         finally:
             await super().async_shutdown()
 
@@ -166,6 +203,8 @@ class WorxVisionCoordinator(DataUpdateCoordinator[dict[str, DeviceHandler]]):
         and starve the product-item statistics while the mower is working.
         """
         self.data = data
+        # A pushed MQTT update proves that the cloud connection works again.
+        self.last_update_success = True
         self.async_update_listeners()
 
     async def _refresh_from_cloud_cache(self) -> dict[str, DeviceHandler]:
@@ -185,11 +224,40 @@ class WorxVisionCoordinator(DataUpdateCoordinator[dict[str, DeviceHandler]]):
         return devices
 
     async def _async_update_data(self) -> dict[str, DeviceHandler]:
-        """Return current cloud cache for DataUpdateCoordinator."""
+        """Return current cloud cache for DataUpdateCoordinator.
+
+        A lost cloud connection that cannot be re-established raises
+        UpdateFailed, so entities become unavailable instead of showing stale
+        state. A rejected login raises ConfigEntryAuthFailed (re-authentication).
+        """
+        await self._async_check_cloud_connection()
+        self._rest_auth_error = None
         try:
-            return await self._refresh_from_cloud_cache()
+            devices = await self._refresh_from_cloud_cache()
         except Exception as err:  # noqa: BLE001
-            raise UpdateFailed(str(err)) from err
+            raise UpdateFailed(f"Could not read Worx cloud data: {err}") from err
+        if self._rest_auth_error is not None:
+            raise ConfigEntryAuthFailed(
+                "Worx rejected the saved login"
+            ) from self._rest_auth_error
+        return devices
+
+    async def _async_check_cloud_connection(self) -> None:
+        """Re-establish a dropped Worx MQTT connection during a periodic refresh."""
+        if getattr(self.cloud, "mqtt_connected", None) is not False:
+            return
+
+        _LOGGER.info("Worx MQTT connection is down; reconnecting")
+        try:
+            await self._async_reconnect()
+        except AuthorizationError as err:
+            raise ConfigEntryAuthFailed("Worx rejected the saved login") from err
+        except TooManyRequestsError as err:
+            raise UpdateFailed("Worx cloud rate limit while reconnecting") from err
+        except Exception as err:  # noqa: BLE001
+            raise UpdateFailed(f"Could not reconnect to Worx cloud: {err}") from err
+        if getattr(self.cloud, "mqtt_connected", None) is False:
+            raise UpdateFailed("Worx MQTT connection could not be re-established")
 
     async def async_request_device_update(self, serial_number: str) -> None:
         """Ask one mower for a fresh MQTT state update, then refresh coordinator data."""
@@ -198,15 +266,40 @@ class WorxVisionCoordinator(DataUpdateCoordinator[dict[str, DeviceHandler]]):
         finally:
             await self.async_request_refresh()
 
+    async def async_refresh_device(self, serial_number: str) -> None:
+        """Request a fresh mower state on user request (refresh button)."""
+        await self._async_run_cloud_call(
+            lambda: self.cloud.update(serial_number), ensure_mqtt=True
+        )
+        await self.async_request_refresh()
+
+    async def _async_reconnect(self, *, generation: int | None = None) -> None:
+        """Reconnect the Worx cloud session, one caller at a time.
+
+        Without a generation the reconnect is skipped when MQTT is already
+        connected. With a generation (read before a failed publish) it is
+        skipped when another caller has reconnected in the meantime.
+        """
+        async with self._connect_lock:
+            if generation is None:
+                if getattr(self.cloud, "mqtt_connected", False):
+                    return
+            elif generation != self._connect_generation:
+                return
+            await self.cloud.connect()
+            self._connect_generation += 1
+
     async def _async_ensure_mqtt_connected(self) -> None:
         """Reconnect MQTT before sending mower commands when the cloud session is stale."""
         if getattr(self.cloud, "mqtt_connected", False):
             return
 
         _LOGGER.warning("Worx MQTT connection is not ready; reconnecting before command")
-        await self.cloud.connect()
+        await self._async_reconnect()
         if not getattr(self.cloud, "mqtt_connected", False):
-            raise HomeAssistantError("Worx MQTT connection is not ready")
+            raise HomeAssistantError(
+                translation_domain=DOMAIN, translation_key="mqtt_not_ready"
+            )
 
     async def _async_publish_command(
         self, serial_number: str, topic: str, message: dict[str, Any], protocol: int
@@ -215,23 +308,98 @@ class WorxVisionCoordinator(DataUpdateCoordinator[dict[str, DeviceHandler]]):
         await self._async_ensure_mqtt_connected()
         mqtt = getattr(self.cloud, "mqtt", None)
         if mqtt is None:
-            raise HomeAssistantError("Worx MQTT connection is not available")
+            raise HomeAssistantError(
+                translation_domain=DOMAIN, translation_key="mqtt_not_ready"
+            )
 
+        generation = self._connect_generation
         try:
             await mqtt.apublish(serial_number, topic, message, protocol)
         except NoConnectionError:
             _LOGGER.warning("Worx MQTT command failed because connection was stale; retrying once")
-            await self.cloud.connect()
+            await self._async_reconnect(generation=generation)
             mqtt = getattr(self.cloud, "mqtt", None)
             if mqtt is None:
-                raise HomeAssistantError("Worx MQTT connection is not available")
+                raise HomeAssistantError(
+                    translation_domain=DOMAIN, translation_key="mqtt_not_ready"
+                ) from None
             await mqtt.apublish(serial_number, topic, message, protocol)
+
+    async def _async_run_cloud_call(
+        self,
+        call: Callable[[], Awaitable[Any]],
+        *,
+        ensure_mqtt: bool = False,
+        retry_on_disconnect: bool = True,
+    ) -> Any:
+        """Run one Worx cloud call and translate library errors.
+
+        Every failure leaves as HomeAssistantError, so automations and scripts
+        can handle it (for example with continue_on_error). A rejected login
+        also starts re-authentication. A call that failed because the MQTT
+        connection was down did not reach the mower, so it is retried once
+        after reconnecting.
+        """
+        try:
+            if ensure_mqtt:
+                await self._async_ensure_mqtt_connected()
+            generation = self._connect_generation
+            try:
+                return await call()
+            except NoConnectionError:
+                if not retry_on_disconnect:
+                    raise
+                _LOGGER.warning(
+                    "Worx command failed because the connection was down; "
+                    "reconnecting and retrying once"
+                )
+                await self._async_reconnect(generation=generation)
+                return await call()
+        except HomeAssistantError:
+            raise
+        except AuthorizationError as err:
+            if self.config_entry is not None:
+                self.config_entry.async_start_reauth(self.hass)
+            raise HomeAssistantError(
+                translation_domain=DOMAIN, translation_key="cloud_auth_failed"
+            ) from err
+        except TooManyRequestsError as err:
+            raise HomeAssistantError(
+                translation_domain=DOMAIN, translation_key="cloud_rate_limited"
+            ) from err
+        except (TimeoutException, TimeoutError) as err:
+            raise HomeAssistantError(
+                translation_domain=DOMAIN, translation_key="cloud_command_timeout"
+            ) from err
+        except Exception as err:  # noqa: BLE001 - the library raises many types
+            raise HomeAssistantError(
+                translation_domain=DOMAIN,
+                translation_key="cloud_command_failed",
+                translation_placeholders={"error": str(err) or type(err).__name__},
+            ) from err
+
+    async def async_cloud_command(
+        self,
+        serial_number: str,
+        call: Callable[[], Awaitable[Any]],
+        *,
+        ensure_mqtt: bool = False,
+    ) -> None:
+        """Send one mower command, then refresh its state on a best-effort basis.
+
+        Only the command itself can fail the action: a command that reached
+        the cloud is not reported as failed because the following state refresh
+        failed.
+        """
+        await self._async_run_cloud_call(call, ensure_mqtt=ensure_mqtt)
+        await self._async_request_device_update_best_effort(serial_number)
 
     async def _async_request_device_update_best_effort(self, serial_number: str) -> None:
         """Refresh device state after a command without failing an accepted command."""
         try:
             await asyncio.wait_for(
-                self.async_request_device_update(serial_number), timeout=10
+                self.async_request_device_update(serial_number),
+                timeout=POST_COMMAND_REFRESH_TIMEOUT,
             )
         except (NoConnectionError, TimeoutException, TimeoutError) as err:
             _LOGGER.warning(
@@ -245,10 +413,18 @@ class WorxVisionCoordinator(DataUpdateCoordinator[dict[str, DeviceHandler]]):
 
     async def async_start_edge_cut(self, serial_number: str) -> None:
         """Start an on-demand edge cutting task."""
+        await self._async_run_cloud_call(
+            lambda: self._async_send_edge_cut(serial_number),
+            retry_on_disconnect=False,
+        )
+        await self._async_request_device_update_best_effort(serial_number)
+
+    async def _async_send_edge_cut(self, serial_number: str) -> None:
+        """Publish the edge cutting command for the mower protocol."""
         mower = self.cloud.get_mower(serial_number)
         if not mower.get("online"):
             raise HomeAssistantError(
-                "The device is currently offline, no action was sent"
+                translation_domain=DOMAIN, translation_key="mower_offline"
             )
 
         protocol = mower.get("protocol")
@@ -266,14 +442,11 @@ class WorxVisionCoordinator(DataUpdateCoordinator[dict[str, DeviceHandler]]):
                 protocol,
             )
         elif protocol == 1:
-            await self.async_start_one_time_mowing(serial_number, 0, True, [])
-            return
+            await self._async_send_one_time_mowing(serial_number, 0, True, [])
         else:
             raise HomeAssistantError(
                 "Edge cutting is not supported for this mower protocol"
             )
-
-        await self._async_request_device_update_best_effort(serial_number)
 
     async def async_start_one_time_mowing(
         self,
@@ -282,11 +455,31 @@ class WorxVisionCoordinator(DataUpdateCoordinator[dict[str, DeviceHandler]]):
         edge_cut: bool = False,
         zones: list[int] | None = None,
     ) -> None:
-        """Start a one-time mowing task, optionally limited to RTK zones."""
+        """Start a one-time mowing task, optionally limited to RTK zones.
+
+        Cloud errors are raised as HomeAssistantError. A command that reached
+        the cloud is not reported as failed when the following refresh fails.
+        """
+        await self._async_run_cloud_call(
+            lambda: self._async_send_one_time_mowing(
+                serial_number, runtime_minutes, edge_cut, zones
+            ),
+            retry_on_disconnect=False,
+        )
+        await self._async_request_device_update_best_effort(serial_number)
+
+    async def _async_send_one_time_mowing(
+        self,
+        serial_number: str,
+        runtime_minutes: int,
+        edge_cut: bool = False,
+        zones: list[int] | None = None,
+    ) -> None:
+        """Publish the one-time mowing command for the mower protocol."""
         mower = self.cloud.get_mower(serial_number)
         if not mower.get("online"):
             raise HomeAssistantError(
-                "The device is currently offline, no action was sent"
+                translation_domain=DOMAIN, translation_key="mower_offline"
             )
 
         protocol = mower.get("protocol")
@@ -330,6 +523,17 @@ class WorxVisionCoordinator(DataUpdateCoordinator[dict[str, DeviceHandler]]):
                     uuid, command_topic, {"cmd": 101}, protocol
                 )
             else:
+                if zone_ids:
+                    # Reported for WR312E firmware 3.46.x (issue #5): the
+                    # mower accepts this command but ignores the zone list.
+                    # The mower data does not tell which firmware honours it,
+                    # so the command is still sent and the risk is logged.
+                    _LOGGER.warning(
+                        "Mower %s uses the Vision/RTK protocol; its firmware may "
+                        "ignore the selected zones %s and mow all zones",
+                        serial_number,
+                        zone_ids,
+                    )
                 await self._async_publish_command(
                     uuid,
                     command_topic,
@@ -348,8 +552,6 @@ class WorxVisionCoordinator(DataUpdateCoordinator[dict[str, DeviceHandler]]):
             raise HomeAssistantError(
                 "One-time mowing is not supported for this mower protocol"
             )
-
-        await self._async_request_device_update_best_effort(serial_number)
 
     def _one_time_options(self, serial_number: str) -> dict[str, Any]:
         """Return local one-time mowing options for a mower."""
@@ -428,6 +630,74 @@ class WorxVisionCoordinator(DataUpdateCoordinator[dict[str, DeviceHandler]]):
             except (TypeError, ValueError):
                 _LOGGER.debug("Ignoring invalid stored one-time mowing options")
 
+    def maintenance_threshold(self, serial_number: str, key: str) -> int:
+        """Return a local maintenance interval for one mower."""
+        return int(
+            self._maintenance.get(serial_number, {}).get(
+                key, MAINTENANCE_DEFAULTS[key]
+            )
+        )
+
+    def maintenance_summary(self, serial_number: str) -> dict[str, Any]:
+        """Return maintenance counters and due flags using local intervals."""
+        return maintenance_summary(
+            (self.data or {}).get(serial_number),
+            blade_hours=self.maintenance_threshold(
+                serial_number, MAINTENANCE_BLADE_HOURS
+            ),
+            battery_cycles_limit=self.maintenance_threshold(
+                serial_number, MAINTENANCE_BATTERY_CYCLES
+            ),
+            blade_days=self.maintenance_threshold(serial_number, MAINTENANCE_BLADE_DAYS),
+            now=datetime.now(UTC),
+        )
+
+    async def async_set_maintenance_threshold(
+        self, serial_number: str, key: str, value: float
+    ) -> None:
+        """Store a local maintenance interval for one mower."""
+        low, high = MAINTENANCE_LIMITS[key]
+        self._maintenance.setdefault(serial_number, {})[key] = max(
+            low, min(high, round(value))
+        )
+        self._maintenance_store.async_delay_save(
+            lambda: self._maintenance, OPTIONS_SAVE_DELAY
+        )
+        self.async_update_listeners()
+
+    def _restore_maintenance(self, stored: Any) -> None:
+        """Restore maintenance intervals saved before a restart."""
+        if not isinstance(stored, dict):
+            return
+        for serial_number, options in stored.items():
+            if not isinstance(options, dict):
+                continue
+            restored: dict[str, int] = {}
+            for key, value in options.items():
+                if key not in MAINTENANCE_DEFAULTS:
+                    continue
+                try:
+                    low, high = MAINTENANCE_LIMITS[key]
+                    restored[key] = max(low, min(high, int(value)))
+                except (TypeError, ValueError):
+                    _LOGGER.debug("Ignoring invalid stored maintenance interval")
+            if restored:
+                self._maintenance[str(serial_number)] = restored
+
+    def _check_private_cloud_api(self) -> None:
+        """Warn once when pyworxcloud no longer offers the private API used here."""
+        missing = [
+            name for name in PRIVATE_CLOUD_ATTRIBUTES if not hasattr(self.cloud, name)
+        ]
+        if not missing:
+            return
+        _LOGGER.warning(
+            "The installed pyworxcloud does not provide %s; statistics, RTK map "
+            "and firmware details will not be available. This integration is "
+            "tested with the pyworxcloud version pinned in manifest.json",
+            ", ".join(missing),
+        )
+
     async def async_start_configured_one_time_mowing(self, serial_number: str) -> None:
         """Start one-time mowing using local UI options."""
         await self.async_start_one_time_mowing(
@@ -445,9 +715,11 @@ class WorxVisionCoordinator(DataUpdateCoordinator[dict[str, DeviceHandler]]):
                 "The installed pyworxcloud version does not support rain delay updates"
             )
 
-        await raindelay(serial_number, str(int(minutes)))
+        await self._async_run_cloud_call(
+            lambda: raindelay(serial_number, str(int(minutes)))
+        )
         self._update_cached_rain_delay(serial_number, int(minutes))
-        await self.async_request_device_update(serial_number)
+        await self._async_request_device_update_best_effort(serial_number)
 
     async def async_set_time_extension(
         self, serial_number: str, time_extension: int
@@ -459,8 +731,10 @@ class WorxVisionCoordinator(DataUpdateCoordinator[dict[str, DeviceHandler]]):
                 "The installed pyworxcloud version does not support time extension updates"
             )
 
-        await set_time_extension(serial_number, int(time_extension))
-        await self.async_request_device_update(serial_number)
+        await self._async_run_cloud_call(
+            lambda: set_time_extension(serial_number, int(time_extension))
+        )
+        await self._async_request_device_update_best_effort(serial_number)
 
     async def async_set_lawn_size(self, serial_number: str, size_m2: int) -> None:
         """Set top-level lawn size in square meters."""
@@ -470,9 +744,11 @@ class WorxVisionCoordinator(DataUpdateCoordinator[dict[str, DeviceHandler]]):
                 "The installed pyworxcloud version does not support lawn size updates"
             )
 
-        await set_lawn_size(serial_number, int(size_m2))
+        await self._async_run_cloud_call(
+            lambda: set_lawn_size(serial_number, int(size_m2))
+        )
         self._update_cached_product_item(serial_number, lawn_size=int(size_m2))
-        await self.async_request_device_update(serial_number)
+        await self._async_request_device_update_best_effort(serial_number)
 
     async def async_set_lawn_perimeter(
         self, serial_number: str, perimeter_m: int
@@ -484,11 +760,13 @@ class WorxVisionCoordinator(DataUpdateCoordinator[dict[str, DeviceHandler]]):
                 "The installed pyworxcloud version does not support lawn perimeter updates"
             )
 
-        await set_lawn_perimeter(serial_number, int(perimeter_m))
+        await self._async_run_cloud_call(
+            lambda: set_lawn_perimeter(serial_number, int(perimeter_m))
+        )
         self._update_cached_product_item(
             serial_number, lawn_perimeter=int(perimeter_m)
         )
-        await self.async_request_device_update(serial_number)
+        await self._async_request_device_update_best_effort(serial_number)
 
     async def async_set_firmware_auto_upgrade(
         self, serial_number: str, enabled: bool
@@ -502,9 +780,11 @@ class WorxVisionCoordinator(DataUpdateCoordinator[dict[str, DeviceHandler]]):
                 "The installed pyworxcloud version does not support firmware auto-upgrade"
             )
 
-        await set_firmware_auto_upgrade(serial_number, enabled)
+        await self._async_run_cloud_call(
+            lambda: set_firmware_auto_upgrade(serial_number, enabled)
+        )
         self._update_cached_product_item(serial_number, firmware_auto_upgrade=enabled)
-        await self.async_request_device_update(serial_number)
+        await self._async_request_device_update_best_effort(serial_number)
 
     async def async_set_lock(self, serial_number: str, enabled: bool) -> None:
         """Lock or unlock the mower."""
@@ -514,9 +794,11 @@ class WorxVisionCoordinator(DataUpdateCoordinator[dict[str, DeviceHandler]]):
                 "The installed pyworxcloud version does not support lock updates"
             )
 
-        await set_lock(serial_number, state=enabled)
+        await self._async_run_cloud_call(
+            lambda: set_lock(serial_number, state=enabled)
+        )
         self._update_cached_product_item(serial_number, locked=enabled)
-        await self.async_request_device_update(serial_number)
+        await self._async_request_device_update_best_effort(serial_number)
 
     async def async_toggle_schedule(self, serial_number: str, enabled: bool) -> None:
         """Enable or disable the mower's native schedule."""
@@ -526,8 +808,10 @@ class WorxVisionCoordinator(DataUpdateCoordinator[dict[str, DeviceHandler]]):
                 "The installed pyworxcloud version does not support schedule toggling"
             )
 
-        await toggle_schedule(serial_number, enable=enabled)
-        await self.async_request_device_update(serial_number)
+        await self._async_run_cloud_call(
+            lambda: toggle_schedule(serial_number, enable=enabled)
+        )
+        await self._async_request_device_update_best_effort(serial_number)
 
     async def async_start_firmware_upgrade(self, serial_number: str) -> None:
         """Queue the latest firmware update for a mower."""
@@ -537,9 +821,11 @@ class WorxVisionCoordinator(DataUpdateCoordinator[dict[str, DeviceHandler]]):
                 "The installed pyworxcloud version does not support firmware installs"
             )
 
-        await start_firmware_upgrade(serial_number)
+        await self._async_run_cloud_call(
+            lambda: start_firmware_upgrade(serial_number)
+        )
         await self.async_get_firmware_upgrade_info(serial_number, force=True)
-        await self.async_request_device_update(serial_number)
+        await self._async_request_device_update_best_effort(serial_number)
 
     async def async_reset_charge_cycle_counter(self, serial_number: str) -> None:
         """Reset battery charge cycle counter after battery maintenance."""
@@ -551,8 +837,10 @@ class WorxVisionCoordinator(DataUpdateCoordinator[dict[str, DeviceHandler]]):
                 "The installed pyworxcloud version does not support battery cycle reset"
             )
 
-        await reset_charge_cycle_counter(serial_number)
-        await self.async_request_device_update(serial_number)
+        await self._async_run_cloud_call(
+            lambda: reset_charge_cycle_counter(serial_number)
+        )
+        await self._async_request_device_update_best_effort(serial_number)
 
     async def async_set_cut_over_border(
         self, serial_number: str, enabled: bool
@@ -560,12 +848,16 @@ class WorxVisionCoordinator(DataUpdateCoordinator[dict[str, DeviceHandler]]):
         """Persist whether Vision border cutting may cross the lawn border."""
         set_cut_over_border = getattr(self.cloud, "set_cut_over_border", None)
         if set_cut_over_border is not None:
-            await set_cut_over_border(serial_number, enabled)
+            await self._async_run_cloud_call(
+                lambda: set_cut_over_border(serial_number, enabled)
+            )
         else:
-            await self._async_send_cut_over_border(serial_number, enabled)
+            await self._async_run_cloud_call(
+                lambda: self._async_send_cut_over_border(serial_number, enabled)
+            )
 
         self._update_cached_cut_over_border(serial_number, enabled)
-        await self.async_request_device_update(serial_number)
+        await self._async_request_device_update_best_effort(serial_number)
 
     async def async_set_border_distance(
         self, serial_number: str, distance_mm: int
@@ -577,9 +869,11 @@ class WorxVisionCoordinator(DataUpdateCoordinator[dict[str, DeviceHandler]]):
                 "The installed pyworxcloud version does not support border distance updates"
             )
 
-        await set_border_distance(serial_number, int(distance_mm))
+        await self._async_run_cloud_call(
+            lambda: set_border_distance(serial_number, int(distance_mm))
+        )
         self._update_cached_border_distance(serial_number, int(distance_mm))
-        await self.async_request_device_update(serial_number)
+        await self._async_request_device_update_best_effort(serial_number)
 
     async def _async_send_cut_over_border(
         self, serial_number: str, enabled: bool
@@ -679,34 +973,12 @@ class WorxVisionCoordinator(DataUpdateCoordinator[dict[str, DeviceHandler]]):
         ):
             return cached[1]
 
-        api = getattr(self.cloud, "_api", None)
-        if api is None:
-            _LOGGER.debug("Cannot fetch RTK map: pyworxcloud API object missing")
-            return None
-
-        try:
-            await api.check_token()
-            endpoint = getattr(getattr(api, "cloud", None), "ENDPOINT", None)
-            if endpoint is None:
-                endpoint = getattr(getattr(self.cloud, "_cloud", None), "ENDPOINT", None)
-            if endpoint is None:
-                _LOGGER.debug("Cannot fetch RTK map: Worx API endpoint missing")
-                return None
-
-            map_data = await AGET(
-                f"https://{endpoint}/api/v2/maps/{map_id}",
-                HEADERS(api.access_token),
-                session=await api._ensure_session(),
-            )
-        except Exception:  # noqa: BLE001
-            _LOGGER.debug("Could not fetch RTK map %s", map_id, exc_info=True)
-            return cached[1] if cached is not None else None
-
+        map_data = await self._api_get(f"/api/v2/maps/{map_id}")
         if isinstance(map_data, dict):
             self._rtk_map_cache[map_id] = (now, map_data)
             return map_data
 
-        return None
+        return cached[1] if cached is not None else None
 
     async def async_get_product_item(
         self, serial_number: str | None, *, force: bool = False
@@ -971,7 +1243,17 @@ class WorxVisionCoordinator(DataUpdateCoordinator[dict[str, DeviceHandler]]):
         self._update_daily_statistics(serial_number, device)
 
     async def _api_get(self, path: str) -> Any:
-        """Fetch a private Worx API path using pyworxcloud's session/token."""
+        """Fetch a private Worx API path using pyworxcloud's session/token.
+
+        A rejected login is remembered for the running refresh, which then
+        starts re-authentication. A rate limit pauses these optional REST
+        requests for an hour instead of repeating them.
+        """
+        if self._rest_backoff_until is not None:
+            if datetime.now(UTC) < self._rest_backoff_until:
+                return None
+            self._rest_backoff_until = None
+
         api = getattr(self.cloud, "_api", None)
         if api is None:
             _LOGGER.debug("Cannot fetch Worx API path %s: API object missing", path)
@@ -991,6 +1273,18 @@ class WorxVisionCoordinator(DataUpdateCoordinator[dict[str, DeviceHandler]]):
                 HEADERS(api.access_token),
                 session=await api._ensure_session(),
             )
+        except AuthorizationError as err:
+            _LOGGER.debug("Worx rejected the login for API path %s", path)
+            self._rest_auth_error = err
+            return None
+        except TooManyRequestsError:
+            self._rest_backoff_until = datetime.now(UTC) + REST_RATE_LIMIT_BACKOFF
+            _LOGGER.warning(
+                "Worx cloud rate limit; pausing statistics, map and firmware "
+                "requests for %s",
+                REST_RATE_LIMIT_BACKOFF,
+            )
+            return None
         except Exception:  # noqa: BLE001
             _LOGGER.debug("Could not fetch Worx API path %s", path, exc_info=True)
             return None

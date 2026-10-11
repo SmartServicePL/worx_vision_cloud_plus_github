@@ -10,13 +10,13 @@ from dataclasses import dataclass
 import logging
 from typing import Any
 
-from homeassistant.config_entries import ConfigEntry
+from homeassistant.config_entries import ConfigEntry, ConfigEntryState
 from homeassistant.const import ATTR_ENTITY_ID, CONF_EMAIL, CONF_PASSWORD
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.exceptions import (
     ConfigEntryAuthFailed,
     ConfigEntryNotReady,
-    HomeAssistantError,
+    ServiceValidationError,
 )
 from homeassistant.helpers import (
     area_registry as ar,
@@ -24,6 +24,7 @@ from homeassistant.helpers import (
     entity_registry as er,
 )
 import homeassistant.helpers.config_validation as cv
+from homeassistant.helpers.typing import ConfigType
 from homeassistant.util import slugify
 import voluptuous as vol
 
@@ -35,18 +36,19 @@ from .const import (
     ATTR_RUNTIME,
     ATTR_ZONES,
     CONF_CLOUD,
-    CONF_EXPOSE_RAW,
     CONF_VERIFY_SSL,
     DEFAULT_CLOUD,
-    DEFAULT_EXPOSE_RAW,
     DEFAULT_VERIFY_SSL,
     DOMAIN,
     PLATFORMS,
     SERVICE_START_ONE_TIME_MOWING,
+    raw_entities_enabled,
 )
 from .coordinator import WorxVisionCoordinator
 
 _LOGGER = logging.getLogger(__name__)
+
+CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 
 START_ONE_TIME_MOWING_SCHEMA = vol.Schema(
     {
@@ -66,6 +68,19 @@ class WorxVisionRuntimeData:
 
     cloud: WorxCloud
     coordinator: WorxVisionCoordinator
+    expose_raw: bool = False
+
+
+async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
+    """Register integration services.
+
+    Services are registered here, not in async_setup_entry, so automations
+    and blueprints always find them, also while the Worx cloud is unreachable
+    and the config entry is still retrying its setup.
+    """
+    del config
+    _async_setup_services(hass)
+    return True
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
@@ -114,19 +129,33 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     _async_migrate_entity_registry(hass, coordinator.data, entry)
 
+    expose_raw = raw_entities_enabled(entry)
+    if not expose_raw:
+        _async_remove_raw_entities(hass, coordinator.data, entry)
+
     hass.data.setdefault(DOMAIN, {})[entry.entry_id] = WorxVisionRuntimeData(
         cloud=cloud,
         coordinator=coordinator,
+        expose_raw=expose_raw,
     )
-    _async_setup_services(hass)
 
-    if CONF_EXPOSE_RAW not in entry.data:
-        hass.config_entries.async_update_entry(
-            entry, data={**entry.data, CONF_EXPOSE_RAW: DEFAULT_EXPOSE_RAW}
-        )
-
+    entry.async_on_unload(entry.add_update_listener(_async_entry_updated))
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     return True
+
+
+async def _async_entry_updated(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    """Reload the entry when the raw-entity option changed.
+
+    Other entry updates (for example a new password from re-authentication)
+    reload the entry on their own and must not trigger a second reload.
+    """
+    runtime: WorxVisionRuntimeData | None = hass.data.get(DOMAIN, {}).get(
+        entry.entry_id
+    )
+    if runtime is None or runtime.expose_raw == raw_entities_enabled(entry):
+        return
+    await hass.config_entries.async_reload(entry.entry_id)
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
@@ -144,8 +173,6 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         await _safe_disconnect(runtime.cloud)
 
     if not hass.data.get(DOMAIN):
-        if hass.services.has_service(DOMAIN, SERVICE_START_ONE_TIME_MOWING):
-            hass.services.async_remove(DOMAIN, SERVICE_START_ONE_TIME_MOWING)
         hass.data.pop(DOMAIN, None)
 
     return unload_ok
@@ -182,7 +209,7 @@ def _async_setup_services(hass: HomeAssistant) -> None:
     if hass.services.has_service(DOMAIN, SERVICE_START_ONE_TIME_MOWING):
         return
 
-    async def async_start_one_time_mowing(call) -> None:
+    async def async_start_one_time_mowing(call: ServiceCall) -> None:
         entity_id = call.data[ATTR_ENTITY_ID]
         entity_entry = er.async_get(hass).async_get(entity_id)
         if (
@@ -190,8 +217,10 @@ def _async_setup_services(hass: HomeAssistant) -> None:
             or entity_entry.platform != DOMAIN
             or not entity_entry.unique_id.endswith("_mower")
         ):
-            raise HomeAssistantError(
-                "Select a Worx Vision Cloud PLUS lawn_mower entity"
+            raise ServiceValidationError(
+                translation_domain=DOMAIN,
+                translation_key="invalid_mower_entity",
+                translation_placeholders={"entity_id": entity_id},
             )
 
         serial_number = entity_entry.unique_id.removesuffix("_mower")
@@ -209,8 +238,22 @@ def _async_setup_services(hass: HomeAssistant) -> None:
                 None,
             )
         if runtime_data is None:
-            raise HomeAssistantError(
-                "Could not find runtime data for the selected Worx mower"
+            config_entry = (
+                hass.config_entries.async_get_entry(entity_entry.config_entry_id)
+                if entity_entry.config_entry_id
+                else None
+            )
+            raise ServiceValidationError(
+                translation_domain=DOMAIN,
+                translation_key="integration_not_loaded",
+                translation_placeholders={
+                    "entry": config_entry.title if config_entry else entity_id,
+                    "state": (
+                        config_entry.state.value
+                        if config_entry is not None
+                        else ConfigEntryState.NOT_LOADED.value
+                    ),
+                },
             )
 
         await runtime_data.coordinator.async_start_one_time_mowing(
@@ -226,6 +269,21 @@ def _async_setup_services(hass: HomeAssistant) -> None:
         async_start_one_time_mowing,
         schema=START_ONE_TIME_MOWING_SCHEMA,
     )
+
+
+def _async_remove_raw_entities(
+    hass: HomeAssistant,
+    devices: dict,
+    entry: ConfigEntry,
+) -> None:
+    """Remove raw payload entities after the raw-entity option was turned off."""
+    registry = er.async_get(hass)
+    prefixes = tuple(f"{serial_number}_raw_" for serial_number in devices)
+    if not prefixes:
+        return
+    for entity_entry in er.async_entries_for_config_entry(registry, entry.entry_id):
+        if entity_entry.unique_id.startswith(prefixes):
+            registry.async_remove(entity_entry.entity_id)
 
 
 async def _safe_disconnect(cloud: WorxCloud) -> None:

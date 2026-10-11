@@ -32,6 +32,51 @@ TRAIL_MAX_SEGMENT_DISTANCE_M = 35.0
 TRAIL_MIN_POINT_DISTANCE_M = 0.25
 TRAIL_MAP_MARGIN_M = 12.0
 DEFAULT_CUTTING_WIDTH_M = 0.18
+DEFAULT_PLACEHOLDER_LANGUAGE = "en"
+# The map image is rendered here, so its placeholder texts cannot use
+# translations/*.json; they follow the Home Assistant language instead.
+PLACEHOLDER_TEXTS = {
+    "en": {
+        "no_map": "No RTK map from the Worx API",
+        "no_points": "The RTK map has no points",
+    },
+    "pl": {
+        "no_map": "Brak mapy RTK z API",
+        "no_points": "Mapa RTK nie zawiera punktów",
+    },
+    "de": {
+        "no_map": "Keine RTK-Karte von der Worx-API",
+        "no_points": "Die RTK-Karte enthält keine Punkte",
+    },
+    "fr": {
+        "no_map": "Aucune carte RTK de l'API Worx",
+        "no_points": "La carte RTK ne contient aucun point",
+    },
+    "es": {
+        "no_map": "No hay mapa RTK de la API de Worx",
+        "no_points": "El mapa RTK no contiene puntos",
+    },
+    "it": {
+        "no_map": "Nessuna mappa RTK dall'API Worx",
+        "no_points": "La mappa RTK non contiene punti",
+    },
+    "nl": {
+        "no_map": "Geen RTK-kaart van de Worx-API",
+        "no_points": "De RTK-kaart bevat geen punten",
+    },
+    "sv": {
+        "no_map": "Ingen RTK-karta från Worx API",
+        "no_points": "RTK-kartan innehåller inga punkter",
+    },
+    "nb": {
+        "no_map": "Ingen RTK-kart fra Worx API",
+        "no_points": "RTK-kartet inneholder ingen punkter",
+    },
+    "da": {
+        "no_map": "Intet RTK-kort fra Worx API",
+        "no_points": "RTK-kortet indeholder ingen punkter",
+    },
+}
 MOWED_SWATH_MIN_WIDTH_PX = 3.0
 MOWED_SWATH_MAX_WIDTH_PX = 32.0
 MOWED_MAX_OPACITY = 0.58
@@ -137,18 +182,27 @@ class WorxVisionMapCamera(WorxVisionEntity, Camera):
         del width, height
 
         map_data = await self.coordinator.async_get_rtk_map(str(rtk_map_id(self.device)))
-        if map_data is not None:
+        state_changed = False
+        if map_data is not None and map_data is not self._last_map_data:
             self._last_map_data = map_data
+            state_changed = True
 
         trail = self.coordinator.rtk_position_timed_trail(self._serial_number)
+        config = getattr(self.hass, "config", None)
         svg, swath_width_px = _render_svg_map(
             map_data,
             rtk_position(self.device),
             trail,
             _cutting_width_m(self.device),
+            getattr(config, "language", None) or DEFAULT_PLACEHOLDER_LANGUAGE,
         )
-        self._last_mowed_swath_width_px = swath_width_px
-        self.async_write_ha_state()
+        if swath_width_px != self._last_mowed_swath_width_px:
+            self._last_mowed_swath_width_px = swath_width_px
+            state_changed = True
+        # The dashboard fetches the image every few seconds; only write the
+        # state when the attributes derived from the image actually changed.
+        if state_changed:
+            self.async_write_ha_state()
         return svg.encode()
 
 
@@ -508,10 +562,11 @@ def _render_svg_map(
     robot_position: tuple[float, float] | None,
     trail: list[tuple[datetime, float, float]] | None = None,
     cutting_width_m: float = DEFAULT_CUTTING_WIDTH_M,
+    language: str = DEFAULT_PLACEHOLDER_LANGUAGE,
 ) -> tuple[str, float | None]:
     """Render map data to SVG."""
     if not isinstance(map_data, dict):
-        return _placeholder_svg("Brak mapy RTK z API"), None
+        return _placeholder_svg(_placeholder_text("no_map", language)), None
 
     trail_segments = _trail_segments(map_data, trail)
     trail_points = [
@@ -521,7 +576,7 @@ def _render_svg_map(
     ]
     points = _iter_bounds_points(map_data, robot_position, trail_points)
     if not points:
-        return _placeholder_svg("Mapa RTK nie zawiera punktow"), None
+        return _placeholder_svg(_placeholder_text("no_points", language)), None
 
     project, meters_to_pixels = _projector(points)
     swath_width_px = _mowed_swath_width_px(cutting_width_m, meters_to_pixels)
@@ -622,6 +677,14 @@ def _render_svg_map(
         f'{"".join(body)}'
         "</svg>"
     ), round(swath_width_px, 2)
+
+
+def _placeholder_text(key: str, language: str) -> str:
+    """Return a localized placeholder message for the map image."""
+    labels = PLACEHOLDER_TEXTS.get(language.split("-")[0].lower())
+    if labels is None:
+        labels = PLACEHOLDER_TEXTS[DEFAULT_PLACEHOLDER_LANGUAGE]
+    return labels[key]
 
 
 def _placeholder_svg(message: str) -> str:

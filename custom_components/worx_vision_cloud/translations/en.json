@@ -31,6 +31,17 @@
       "reauth_successful": "The login was updated."
     }
   },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Options",
+        "description": "Raw entities are meant for debugging. Turning the option off removes them.",
+        "data": {
+          "expose_raw_entities": "Expose all raw payload fields as entities"
+        }
+      }
+    }
+  },
   "services": {
     "start_one_time_mowing": {
       "name": "Start one-time mowing",
@@ -290,6 +301,12 @@
       },
       "save_hedgehogs": {
         "name": "Save the hedgehogs"
+      },
+      "blade_service_due": {
+        "name": "Blade replacement due"
+      },
+      "battery_service_due": {
+        "name": "Battery service due"
       }
     },
     "switch": {
@@ -347,6 +364,15 @@
       },
       "one_time_mowing_runtime": {
         "name": "One-time mowing runtime"
+      },
+      "blade_service_interval": {
+        "name": "Blade service interval"
+      },
+      "blade_service_interval_days": {
+        "name": "Blade service interval (days)"
+      },
+      "battery_service_interval": {
+        "name": "Battery service interval"
       }
     },
     "select": {
@@ -373,6 +399,32 @@
       "rtk_position": {
         "name": "RTK position"
       }
+    }
+  },
+  "exceptions": {
+    "mqtt_not_ready": {
+      "message": "The Worx cloud connection is not ready. Try again in a moment."
+    },
+    "cloud_auth_failed": {
+      "message": "Worx rejected the saved login. Sign in again in the integration settings."
+    },
+    "cloud_rate_limited": {
+      "message": "Worx cloud rate limit reached. Try again later."
+    },
+    "cloud_command_timeout": {
+      "message": "The Worx cloud did not confirm the command in time. The mower may still carry it out."
+    },
+    "cloud_command_failed": {
+      "message": "The Worx cloud did not accept the command: {error}"
+    },
+    "mower_offline": {
+      "message": "The mower is offline; no command was sent."
+    },
+    "invalid_mower_entity": {
+      "message": "{entity_id} is not a Worx Vision Cloud PLUS mower. Select its lawn_mower entity."
+    },
+    "integration_not_loaded": {
+      "message": "Worx Vision Cloud PLUS ({entry}) is not loaded (state: {state}). Check the integration and the Worx cloud connection."
     }
   }
 }

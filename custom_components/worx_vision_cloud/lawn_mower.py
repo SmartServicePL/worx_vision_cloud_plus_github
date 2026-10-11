@@ -137,6 +137,9 @@ class WorxVisionLawnMower(WorxVisionEntity, LawnMowerEntity):
         }
 
         station_distance = rtk_distance_to_station_m(device)
+        # rtk_at_station is always present (None when the RTK position or the
+        # station marker is unknown), so automations can rely on the key.
+        attrs["rtk_at_station"] = None
         if station_distance is not None:
             attrs["rtk_station_distance_m"] = round(station_distance, 2)
             attrs["rtk_at_station"] = rtk_at_station(device)
@@ -153,15 +156,24 @@ class WorxVisionLawnMower(WorxVisionEntity, LawnMowerEntity):
 
     async def async_start_mowing(self) -> None:
         """Start or resume mowing."""
-        await self.coordinator.cloud.start(self._serial_number)
-        await self.coordinator.async_request_device_update(self._serial_number)
+        await self.coordinator.async_cloud_command(
+            self._serial_number,
+            lambda: self.coordinator.cloud.start(self._serial_number),
+            ensure_mqtt=True,
+        )
 
     async def async_pause(self) -> None:
         """Pause mowing."""
-        await self.coordinator.cloud.pause(self._serial_number)
-        await self.coordinator.async_request_device_update(self._serial_number)
+        await self.coordinator.async_cloud_command(
+            self._serial_number,
+            lambda: self.coordinator.cloud.pause(self._serial_number),
+            ensure_mqtt=True,
+        )
 
     async def async_dock(self) -> None:
         """Return mower to dock."""
-        await self.coordinator.cloud.home(self._serial_number)
-        await self.coordinator.async_request_device_update(self._serial_number)
+        await self.coordinator.async_cloud_command(
+            self._serial_number,
+            lambda: self.coordinator.cloud.home(self._serial_number),
+            ensure_mqtt=True,
+        )

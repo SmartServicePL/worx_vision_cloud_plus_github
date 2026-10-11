@@ -24,7 +24,7 @@ class WorxButtonDescription(ButtonEntityDescription):
 
 
 async def _refresh(coordinator, serial_number: str) -> None:
-    await coordinator.async_request_device_update(serial_number)
+    await coordinator.async_refresh_device(serial_number)
 
 
 async def _reset_blade_counter(coordinator, serial_number: str) -> None:
@@ -35,8 +35,9 @@ async def _reset_blade_counter(coordinator, serial_number: str) -> None:
             "The installed pyworxcloud version does not support blade counter reset"
         )
 
-    await reset_blade_counter(serial_number)
-    await coordinator.async_request_device_update(serial_number)
+    await coordinator.async_cloud_command(
+        serial_number, lambda: reset_blade_counter(serial_number)
+    )
 
 
 async def _reset_battery_cycle_counter(coordinator, serial_number: str) -> None:

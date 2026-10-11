@@ -29,8 +29,7 @@ from homeassistant.util import dt as dt_util
 from .const import (
     ATTR_RAW_PATH,
     ATTR_RAW_SOURCE,
-    CONF_EXPOSE_RAW,
-    DEFAULT_EXPOSE_RAW,
+    raw_entities_enabled,
     DOMAIN,
     PERCENTAGE_UNIT,
 )
@@ -40,6 +39,7 @@ from .helpers import (
     MOWING_STATUS_IDS,
     current_zone_value,
     get_dict_value,
+    maintenance_state,
     next_schedule_start,
     raw_entity_path_map,
     raw_entity_values,
@@ -403,34 +403,25 @@ def _push_notification_state(device) -> str | None:
     return None
 
 
-def _maintenance_state(device) -> str | None:
-    blade_minutes = _since_reset(device, "blade_work_time", "blade_work_time_reset")
-    battery_cycles = _since_reset(
-        device, "battery_charge_cycles", "battery_charge_cycles_reset"
-    )
-    if blade_minutes is None and battery_cycles is None:
-        return None
-    if blade_minutes is not None and blade_minutes >= 720:
-        return "blade_service_due"
-    if battery_cycles is not None and battery_cycles >= 500:
-        return "battery_service_due"
-    return "ok"
-
-
-def _maintenance_attributes(device) -> dict[str, Any]:
-    blade_minutes = _since_reset(device, "blade_work_time", "blade_work_time_reset")
-    battery_cycles = _since_reset(
-        device, "battery_charge_cycles", "battery_charge_cycles_reset"
-    )
-    blade_reset_at = _as_datetime(_product_item(device, "blade_work_time_reset_at"))
-    battery_reset_at = _as_datetime(
-        _product_item(device, "battery_charge_cycles_reset_at")
-    )
+def _maintenance_attributes(summary: dict[str, Any]) -> dict[str, Any]:
+    """Return maintenance sensor attributes from a coordinator summary."""
+    blade_reset_at = summary.get("blade_runtime_reset_at")
+    battery_reset_at = summary.get("battery_cycles_reset_at")
+    blade_hours = summary.get("blade_service_threshold_hours")
     return {
-        "blade_runtime_since_reset": blade_minutes,
-        "blade_service_threshold_minutes": 720,
-        "battery_cycles_since_reset": battery_cycles,
-        "battery_service_threshold_cycles": 500,
+        "blade_runtime_since_reset": summary.get("blade_runtime_since_reset"),
+        # Kept for compatibility with templates written for 1.4.x.
+        "blade_service_threshold_minutes": blade_hours * 60
+        if blade_hours is not None
+        else None,
+        "blade_service_threshold_hours": blade_hours,
+        "blade_service_interval_days": summary.get("blade_service_interval_days"),
+        "battery_cycles_since_reset": summary.get("battery_cycles_since_reset"),
+        "battery_service_threshold_cycles": summary.get(
+            "battery_service_threshold_cycles"
+        ),
+        "blade_service_due": summary.get("blade_service_due"),
+        "battery_service_due": summary.get("battery_service_due"),
         "blade_runtime_reset_at": blade_reset_at.isoformat()
         if blade_reset_at
         else None,
@@ -912,16 +903,6 @@ STANDARD_SENSORS: tuple[WorxSensorDescription, ...] = (
         value_fn=lambda d: _product_item(d, "mower_error_time"),
     ),
     WorxSensorDescription(
-        key="maintenance_status",
-        translation_key="maintenance_status",
-        icon="mdi:wrench-clock",
-        entity_category=EntityCategory.DIAGNOSTIC,
-        device_class=SensorDeviceClass.ENUM,
-        options=MAINTENANCE_STATE_OPTIONS,
-        value_fn=_maintenance_state,
-        attrs_fn=_maintenance_attributes,
-    ),
-    WorxSensorDescription(
         key="pitch",
         translation_key="pitch",
         native_unit_of_measurement=DEGREE,
@@ -969,6 +950,16 @@ STANDARD_SENSORS: tuple[WorxSensorDescription, ...] = (
 )
 
 
+MAINTENANCE_STATUS_DESCRIPTION = SensorEntityDescription(
+    key="maintenance_status",
+    translation_key="maintenance_status",
+    icon="mdi:wrench-clock",
+    entity_category=EntityCategory.DIAGNOSTIC,
+    device_class=SensorDeviceClass.ENUM,
+    options=MAINTENANCE_STATE_OPTIONS,
+)
+
+
 async def async_setup_entry(
     hass: HomeAssistant,
     entry: ConfigEntry,
@@ -1006,10 +997,13 @@ async def async_setup_entry(
         )
         entities.append(WorxVisionAddressSensor(coordinator, entry, serial_number))
         entities.append(WorxScheduleSensor(coordinator, entry, serial_number))
+        entities.append(
+            WorxMaintenanceStatusSensor(coordinator, entry, serial_number)
+        )
 
     def add_raw_entities() -> None:
         raw_entities: list[SensorEntity] = []
-        if not entry.data.get(CONF_EXPOSE_RAW, DEFAULT_EXPOSE_RAW):
+        if not raw_entities_enabled(entry):
             return
 
         for serial_number, device in (coordinator.data or {}).items():
@@ -1067,6 +1061,37 @@ class WorxVisionSensor(WorxVisionEntity, SensorEntity):
             return None
         attrs = self.entity_description.attrs_fn(self.device)
         return {key: value for key, value in (attrs or {}).items() if value is not None}
+
+
+class WorxMaintenanceStatusSensor(WorxVisionEntity, SensorEntity):
+    """Combined blade and battery maintenance state.
+
+    The intervals come from the per-mower maintenance number entities. The
+    unique ID is unchanged from earlier versions (key maintenance_status).
+    """
+
+    entity_description = MAINTENANCE_STATUS_DESCRIPTION
+
+    def __init__(self, coordinator, entry, serial_number: str) -> None:
+        """Initialize the maintenance status sensor."""
+        super().__init__(
+            coordinator, entry, serial_number, MAINTENANCE_STATUS_DESCRIPTION.key
+        )
+
+    @property
+    def native_value(self) -> str | None:
+        """Return ok, blade_service_due or battery_service_due."""
+        return maintenance_state(
+            self.coordinator.maintenance_summary(self._serial_number)
+        )
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Return counters, intervals and both due flags."""
+        attrs = _maintenance_attributes(
+            self.coordinator.maintenance_summary(self._serial_number)
+        )
+        return {key: value for key, value in attrs.items() if value is not None}
 
 
 class WorxNextScheduleSensor(WorxVisionEntity, SensorEntity):
