@@ -43,6 +43,11 @@ SENSITIVE_RAW_PATHS = {
     "cfg.rtk.ck",
 }
 
+# Raw values that reveal where the garden is are never exposed as entities:
+# the live RTK position and any coordinate field (for example 4G module GPS).
+SENSITIVE_RAW_PATH_PREFIXES = ("dat.rtk.pos",)
+SENSITIVE_RAW_PATH_PARTS = {"coo", "lat", "latitude", "lon", "longitude"}
+
 NOISY_RAW_PATH_PREFIXES = (
     "cfg.log.",
     "cfg.dk.id.",
@@ -268,7 +273,10 @@ def stable_json(value: Any) -> str:
 
 def raw_path_is_sensitive(path: str) -> bool:
     """Return true when a raw path should never be exposed as an entity."""
-    return path in SENSITIVE_RAW_PATHS
+    if path in SENSITIVE_RAW_PATHS or path.startswith(SENSITIVE_RAW_PATH_PREFIXES):
+        return True
+    parts = path.replace("[", ".").replace("]", "").split(".")
+    return any(part.lower() in SENSITIVE_RAW_PATH_PARTS for part in parts)
 
 
 def raw_path_enabled_default(path: str) -> bool:

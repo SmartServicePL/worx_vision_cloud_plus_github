@@ -186,6 +186,13 @@ RTK maps and address lookups can contain precise garden geometry and coordinates
 
 Before opening an issue, remove private data from logs and screenshots. See [SECURITY.md](SECURITY.md).
 
+For bug reports, prefer **Download diagnostics** on the integration or device
+page. The diagnostics file contains the mower state, the raw cloud payload and
+the product details, with login data, serial numbers, UUID, MAC addresses, MQTT
+details, the RTK position and all coordinates removed; the RTK map is reduced to
+the number of boundaries and zones. Optional raw payload entities never expose
+the RTK position or other coordinate fields.
+
 ## Limitations
 
 The Worx / Positec cloud API is not officially public. Some endpoints used here are reverse-engineered and can change without notice. This is a best-effort custom integration, not official Worx software.

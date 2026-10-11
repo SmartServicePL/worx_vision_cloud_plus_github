@@ -344,6 +344,23 @@ def _install_homeassistant() -> None:
         _module("homeassistant.helpers.entity_platform"),
         AddConfigEntryEntitiesCallback=object,
     )
+    def async_redact_data(data, to_redact):
+        """Redact keys recursively, like homeassistant.components.diagnostics."""
+        if isinstance(data, list):
+            return [async_redact_data(item, to_redact) for item in data]
+        if not isinstance(data, dict):
+            return data
+        return {
+            key: "**REDACTED**"
+            if key in to_redact
+            else async_redact_data(value, to_redact)
+            for key, value in data.items()
+        }
+
+    _set_default(
+        _module("homeassistant.components.diagnostics"),
+        async_redact_data=async_redact_data,
+    )
     _set_default(
         _module("homeassistant.components.lawn_mower"),
         LawnMowerActivity=LawnMowerActivity,
