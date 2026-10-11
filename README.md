@@ -97,6 +97,15 @@ Supported cloud selector values:
 
 Most users should keep SSL verification enabled.
 
+Raw payload entities can be turned on or off later with **Configure** on the
+integration card.
+
+Maintenance intervals are per-mower `number` entities: blade service interval
+in hours (default 12 h, as before), an optional blade interval in days (off by
+default) and battery service interval in charge cycles (default 500). The
+Worx Wiki suggests replacing Vision blades after roughly 100-200 operating
+hours or every 1-2 months; adjust the intervals to your mower and lawn.
+
 ## Entities
 
 The exact entity list depends on what your mower reports. Typical entities include:
@@ -107,9 +116,9 @@ The exact entity list depends on what your mower reports. Typical entities inclu
 - `camera` RTK map
 - `device_tracker` RTK robot position
 - `sensor` battery, status, error, readiness, cloud connection, RSSI, schedule, next schedule, rain delay, RTK map, RTK trail, cloud and estimated daily progress, today and total covered area, runtime, efficiency and maintenance values
-- `binary_sensor` online, IoT/MQTT registration, locked, rain, party mode, pause mode and firmware capability diagnostics
+- `binary_sensor` online, IoT/MQTT registration, locked, rain, party mode, pause mode, blade/battery service due and firmware capability diagnostics
 - `switch` firmware auto update, mower lock, native schedule, Smart edge cutting and Save the hedgehogs
-- `number` rain delay, schedule time extension, lawn area, lawn perimeter and Vision edge distance
+- `number` rain delay, schedule time extension, lawn area, lawn perimeter, Vision edge distance and local blade/battery maintenance intervals
 - `update` firmware version, release notes and OTA install when supported
 
 See [docs/entities.md](docs/entities.md) for a more detailed list.
@@ -185,7 +194,9 @@ boundary-wire mowers accept one zone. Some Vision/RTK firmware, including the
 reported WR312E firmware 3.46.x, ignores zone IDs in the available MQTT
 one-time-mowing command even though the official app can select zones through
 an undisclosed cloud route. For that reason Vision/RTK zone selection remains
-experimental; leaving the selection empty starts normal all-zone mowing.
+experimental; leaving the selection empty starts normal all-zone mowing. When
+zones are sent to a Vision/RTK mower, the integration writes a warning to the
+Home Assistant log.
 
 The cloud does not expose a reliable flag distinguishing a temporary charging
 stop from completion of the whole mowing cycle. The integration therefore does
@@ -195,3 +206,5 @@ not claim to provide a definitive "mowing finished" sensor.
 
 - Uses [`pyworxcloud`](https://github.com/MTrab/pyworxcloud).
 - Integration prepared by **Smart Service**.
+- Translations (fr, de, nl, es, it, sv, nb, da) and localisation work:
+  [@ADNPolymerase](https://github.com/ADNPolymerase).
