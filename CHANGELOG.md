@@ -2,6 +2,49 @@
 
 ## Unreleased
 
+## 1.5.0 - 2026-10-11
+
+- Mower commands (start, pause, dock), the one-time mowing action, edge
+  cutting, buttons, switches and numbers now report every Worx cloud failure
+  as a readable, translated Home Assistant error. Scripts and automations can
+  handle it with `continue_on_error`; before, cloud timeouts and rate limits
+  stopped the automation with an unexpected error.
+- A command that reached the Worx cloud is no longer reported as failed only
+  because the state refresh after it timed out.
+- Start, pause and dock reconnect a dropped Worx MQTT connection before
+  sending, like one-time mowing already did. A command that failed because the
+  connection was down is retried once after reconnecting. Reconnects are
+  serialized, so two simultaneous commands no longer open two connections.
+- A rejected Worx login during a command or a periodic refresh now starts
+  re-authentication.
+- When the Worx cloud connection is lost and cannot be re-established, the
+  entities become unavailable instead of showing the last state indefinitely.
+  They recover with the next pushed update or periodic refresh.
+- The `start_one_time_mowing` action is now registered when Home Assistant
+  starts, also while the Worx cloud is unreachable; it then fails with a clear
+  "not loaded" error instead of being unknown to automations.
+- A Worx cloud rate limit pauses the statistics, map and firmware requests for
+  one hour and is logged as a warning.
+- Added per-mower maintenance interval numbers (blade hours, optional blade
+  days, battery cycles) and separate "Blade replacement due" and "Battery
+  service due" binary sensors, so a due blade service no longer hides a due
+  battery service. The defaults keep the previous thresholds (12 h of blade
+  runtime, 500 battery cycles); the existing maintenance status sensor stays
+  and gains the due flags and thresholds as attributes.
+- Added integration options: raw payload entities can now be turned on or off
+  without removing the integration.
+- One-time mowing with zones on Vision/RTK mowers writes a warning to the log,
+  because some firmware ignores the zone selection (issue #5).
+- The `rtk_at_station` mower attribute is always present (empty when unknown).
+- RTK map placeholder texts follow the Home Assistant language, and the map
+  camera no longer writes its state on every image request.
+- A warning is logged at setup when the installed pyworxcloud lacks the private
+  API used for statistics, maps and firmware details.
+- Raised the minimum Home Assistant version in `hacs.json` to 2025.2.0, the
+  first release with the entity platform API used by this integration.
+- Corrected the lawn mower entity ID in the documentation and documented the
+  mower states and attributes used by automations.
+
 ## 1.4.1 - 2026-09-26
 
 - Fixed the "Expose all raw payload fields as entities" option: it was reset to
