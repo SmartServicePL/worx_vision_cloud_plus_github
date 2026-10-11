@@ -32,6 +32,9 @@ RAW_SOURCE_ATTRS = (
 MAX_LIST_ITEMS = 80
 MAX_STRING_STATE_LENGTH = 240
 
+# Status 8 is a mowing state ("mowing" in pyworxcloud utils/state.py
+# STATE_TO_DESCRIPTION). "Lifted" is error code 2 (ERROR_TO_DESCRIPTION),
+# not a status, and is handled through the error id.
 MOWING_STATUS_IDS = {7, 8, 12, 32, 110, 111}
 RETURNING_STATUS_IDS = {4, 5, 6, 30, 104}
 STARTING_STATUS_IDS = {2, 3, 33, 103}
