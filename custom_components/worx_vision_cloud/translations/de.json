@@ -425,6 +425,36 @@
     },
     "integration_not_loaded": {
       "message": "Worx Vision Cloud PLUS ({entry}) ist nicht geladen (Status: {state}). Integration und Worx-Cloud-Verbindung prüfen."
+    },
+    "library_feature_unsupported": {
+      "message": "Die installierte pyworxcloud-Version unterstützt diese Funktion nicht ({feature}). Aktualisiere die Integration."
+    },
+    "command_topic_unavailable": {
+      "message": "Die Worx Cloud hat den Befehlskanal für diesen Mäher nicht bereitgestellt. Versuche es nach der nächsten Aktualisierung erneut."
+    },
+    "mower_uuid_unavailable": {
+      "message": "Die Worx Cloud hat die Mäherkennung (UUID) nicht bereitgestellt. Versuche es nach der nächsten Aktualisierung erneut."
+    },
+    "edge_cut_unsupported": {
+      "message": "Kantenschnitt wird von diesem Mäher nicht unterstützt."
+    },
+    "one_time_mowing_unsupported": {
+      "message": "Einmaliges Mähen wird von diesem Mäher nicht unterstützt."
+    },
+    "legacy_single_zone": {
+      "message": "Mäher mit Begrenzungsdraht akzeptieren nur eine Zone pro einmaligem Mähbefehl."
+    },
+    "runtime_required": {
+      "message": "Lege eine Mähzeit von mindestens 1 Minute fest. 0 ist nur für reinen Kantenschnitt erlaubt."
+    },
+    "edge_only_without_zones": {
+      "message": "Ein reiner Kantenschnitt (Mähzeit 0) kann nicht auf Zonen beschränkt werden. Entferne die Zonen oder lege eine Mähzeit fest."
+    },
+    "unknown_zone_option": {
+      "message": "Unbekannte Zonenauswahl: {option}"
+    },
+    "smart_edge_cut_unsupported": {
+      "message": "Intelligenter Kantenschnitt ist nur für Vision-/RTK-Mäher verfügbar."
     }
   }
 }

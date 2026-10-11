@@ -11,6 +11,7 @@ from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
+from .const import DOMAIN
 from .entity import WorxVisionEntity
 from .helpers import get_dict_value, get_nested_value
 
@@ -286,7 +287,9 @@ async def _set_save_hedgehogs(coordinator, serial_number: str, enabled: bool) ->
     )
     if set_exclude_nights is None:
         raise HomeAssistantError(
-            "The installed pyworxcloud version does not support hedgehog protection"
+            translation_domain=DOMAIN,
+            translation_key="library_feature_unsupported",
+            translation_placeholders={"feature": "set_auto_schedule_exclude_nights"},
         )
     await coordinator.async_cloud_command(
         serial_number, lambda: set_exclude_nights(serial_number, enabled)

@@ -425,6 +425,36 @@
     },
     "integration_not_loaded": {
       "message": "Worx Vision Cloud PLUS ({entry}) n'est pas chargée (état : {state}). Vérifiez l'intégration et la connexion au cloud Worx."
+    },
+    "library_feature_unsupported": {
+      "message": "La version installée de pyworxcloud ne prend pas en charge cette fonction ({feature}). Mettez à jour l'intégration."
+    },
+    "command_topic_unavailable": {
+      "message": "Le cloud Worx n'a pas fourni le canal de commande de cette tondeuse. Réessayez après la prochaine actualisation."
+    },
+    "mower_uuid_unavailable": {
+      "message": "Le cloud Worx n'a pas fourni l'identifiant de la tondeuse (UUID). Réessayez après la prochaine actualisation."
+    },
+    "edge_cut_unsupported": {
+      "message": "La coupe des bordures n'est pas prise en charge par cette tondeuse."
+    },
+    "one_time_mowing_unsupported": {
+      "message": "La tonte ponctuelle n'est pas prise en charge par cette tondeuse."
+    },
+    "legacy_single_zone": {
+      "message": "Les tondeuses à câble périphérique n'acceptent qu'une seule zone par tonte ponctuelle."
+    },
+    "runtime_required": {
+      "message": "Indiquez une durée de tonte d'au moins 1 minute. Une durée de 0 n'est autorisée que pour la coupe des bordures seule."
+    },
+    "edge_only_without_zones": {
+      "message": "Une coupe des bordures seule (durée 0) ne peut pas être limitée à des zones. Retirez les zones ou indiquez une durée."
+    },
+    "unknown_zone_option": {
+      "message": "Sélection de zones inconnue : {option}"
+    },
+    "smart_edge_cut_unsupported": {
+      "message": "La coupe intelligente des bordures n'est disponible que pour les tondeuses Vision / RTK."
     }
   }
 }

@@ -425,6 +425,36 @@
     },
     "integration_not_loaded": {
       "message": "Worx Vision Cloud PLUS ({entry}) is niet geladen (status: {state}). Controleer de integratie en de verbinding met de Worx-cloud."
+    },
+    "library_feature_unsupported": {
+      "message": "De geïnstalleerde pyworxcloud-versie ondersteunt deze functie niet ({feature}). Werk de integratie bij."
+    },
+    "command_topic_unavailable": {
+      "message": "De Worx-cloud heeft het opdrachtkanaal voor deze maaier niet geleverd. Probeer het opnieuw na de volgende verversing."
+    },
+    "mower_uuid_unavailable": {
+      "message": "De Worx-cloud heeft de maaier-ID (UUID) niet geleverd. Probeer het opnieuw na de volgende verversing."
+    },
+    "edge_cut_unsupported": {
+      "message": "Randmaaien wordt door deze maaier niet ondersteund."
+    },
+    "one_time_mowing_unsupported": {
+      "message": "Eenmalig maaien wordt door deze maaier niet ondersteund."
+    },
+    "legacy_single_zone": {
+      "message": "Maaiers met een begrenzingsdraad accepteren maar één zone per eenmalige maaiopdracht."
+    },
+    "runtime_required": {
+      "message": "Stel een maaitijd van minstens 1 minuut in. 0 is alleen toegestaan voor alleen randmaaien."
+    },
+    "edge_only_without_zones": {
+      "message": "Alleen randmaaien (maaitijd 0) kan niet tot zones worden beperkt. Verwijder de zones of stel een maaitijd in."
+    },
+    "unknown_zone_option": {
+      "message": "Onbekende zonekeuze: {option}"
+    },
+    "smart_edge_cut_unsupported": {
+      "message": "Slim randmaaien is alleen beschikbaar voor Vision / RTK-maaiers."
     }
   }
 }

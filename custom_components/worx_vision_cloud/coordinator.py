@@ -13,7 +13,11 @@ from aiohttp import ClientError, ClientTimeout
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
-from homeassistant.exceptions import ConfigEntryAuthFailed, HomeAssistantError
+from homeassistant.exceptions import (
+    ConfigEntryAuthFailed,
+    HomeAssistantError,
+    ServiceValidationError,
+)
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.storage import Store
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
@@ -473,7 +477,10 @@ class WorxVisionCoordinator(DataUpdateCoordinator[dict[str, DeviceHandler]]):
         protocol = mower.get("protocol")
         command_topic = (mower.get("mqtt_topics") or {}).get("command_in")
         if command_topic is None:
-            raise HomeAssistantError("Worx command topic is not available")
+            raise HomeAssistantError(
+                translation_domain=DOMAIN,
+                translation_key="command_topic_unavailable",
+            )
 
         # On Vision Cloud firmware 3.46.x cmd 101 is the reliable edge-only
         # command. Full one-time mowing uses cmd 10 instead.
@@ -488,7 +495,8 @@ class WorxVisionCoordinator(DataUpdateCoordinator[dict[str, DeviceHandler]]):
             await self._async_send_one_time_mowing(serial_number, 0, True, [])
         else:
             raise HomeAssistantError(
-                "Edge cutting is not supported for this mower protocol"
+                translation_domain=DOMAIN,
+                translation_key="edge_cut_unsupported",
             )
 
     async def async_start_one_time_mowing(
@@ -529,17 +537,27 @@ class WorxVisionCoordinator(DataUpdateCoordinator[dict[str, DeviceHandler]]):
         runtime = int(runtime_minutes)
         zone_ids = _normalize_zone_ids(zones)
         if runtime <= 0 and not edge_cut:
-            raise HomeAssistantError(
-                "Runtime must be at least 1 minute unless only edge cutting is requested"
+            raise ServiceValidationError(
+                translation_domain=DOMAIN,
+                translation_key="runtime_required",
+            )
+        if runtime <= 0 and zone_ids:
+            raise ServiceValidationError(
+                translation_domain=DOMAIN,
+                translation_key="edge_only_without_zones",
             )
         if protocol == 0:
             command_topic = (mower.get("mqtt_topics") or {}).get("command_in")
             if command_topic is None:
-                raise HomeAssistantError("Worx command topic is not available")
+                raise HomeAssistantError(
+                    translation_domain=DOMAIN,
+                    translation_key="command_topic_unavailable",
+                )
 
             if len(zone_ids) > 1:
                 raise HomeAssistantError(
-                    "Legacy Worx protocol supports only one selected zone per one-time mowing command"
+                    translation_domain=DOMAIN,
+                    translation_key="legacy_single_zone",
                 )
 
             setzone = getattr(self.cloud, "setzone", None)
@@ -555,11 +573,17 @@ class WorxVisionCoordinator(DataUpdateCoordinator[dict[str, DeviceHandler]]):
         elif protocol == 1:
             command_topic = (mower.get("mqtt_topics") or {}).get("command_in")
             if command_topic is None:
-                raise HomeAssistantError("Worx command topic is not available")
+                raise HomeAssistantError(
+                    translation_domain=DOMAIN,
+                    translation_key="command_topic_unavailable",
+                )
 
             uuid = mower.get("uuid")
             if uuid is None:
-                raise HomeAssistantError("Worx mower UUID is not available")
+                raise HomeAssistantError(
+                    translation_domain=DOMAIN,
+                    translation_key="mower_uuid_unavailable",
+                )
 
             if edge_cut and runtime == 0 and not zone_ids:
                 await self._async_publish_command(
@@ -593,7 +617,8 @@ class WorxVisionCoordinator(DataUpdateCoordinator[dict[str, DeviceHandler]]):
                 )
         else:
             raise HomeAssistantError(
-                "One-time mowing is not supported for this mower protocol"
+                translation_domain=DOMAIN,
+                translation_key="one_time_mowing_unsupported",
             )
 
     def _one_time_options(self, serial_number: str) -> dict[str, Any]:
@@ -755,7 +780,9 @@ class WorxVisionCoordinator(DataUpdateCoordinator[dict[str, DeviceHandler]]):
         raindelay = getattr(self.cloud, "raindelay", None)
         if raindelay is None:
             raise HomeAssistantError(
-                "The installed pyworxcloud version does not support rain delay updates"
+                translation_domain=DOMAIN,
+                translation_key="library_feature_unsupported",
+                translation_placeholders={"feature": "raindelay"},
             )
 
         await self._async_run_cloud_call(
@@ -771,7 +798,9 @@ class WorxVisionCoordinator(DataUpdateCoordinator[dict[str, DeviceHandler]]):
         set_time_extension = getattr(self.cloud, "set_time_extension", None)
         if set_time_extension is None:
             raise HomeAssistantError(
-                "The installed pyworxcloud version does not support time extension updates"
+                translation_domain=DOMAIN,
+                translation_key="library_feature_unsupported",
+                translation_placeholders={"feature": "set_time_extension"},
             )
 
         await self._async_run_cloud_call(
@@ -784,7 +813,9 @@ class WorxVisionCoordinator(DataUpdateCoordinator[dict[str, DeviceHandler]]):
         set_lawn_size = getattr(self.cloud, "set_lawn_size", None)
         if set_lawn_size is None:
             raise HomeAssistantError(
-                "The installed pyworxcloud version does not support lawn size updates"
+                translation_domain=DOMAIN,
+                translation_key="library_feature_unsupported",
+                translation_placeholders={"feature": "set_lawn_size"},
             )
 
         await self._async_run_cloud_call(
@@ -800,7 +831,9 @@ class WorxVisionCoordinator(DataUpdateCoordinator[dict[str, DeviceHandler]]):
         set_lawn_perimeter = getattr(self.cloud, "set_lawn_perimeter", None)
         if set_lawn_perimeter is None:
             raise HomeAssistantError(
-                "The installed pyworxcloud version does not support lawn perimeter updates"
+                translation_domain=DOMAIN,
+                translation_key="library_feature_unsupported",
+                translation_placeholders={"feature": "set_lawn_perimeter"},
             )
 
         await self._async_run_cloud_call(
@@ -820,7 +853,9 @@ class WorxVisionCoordinator(DataUpdateCoordinator[dict[str, DeviceHandler]]):
         )
         if set_firmware_auto_upgrade is None:
             raise HomeAssistantError(
-                "The installed pyworxcloud version does not support firmware auto-upgrade"
+                translation_domain=DOMAIN,
+                translation_key="library_feature_unsupported",
+                translation_placeholders={"feature": "set_firmware_auto_upgrade"},
             )
 
         await self._async_run_cloud_call(
@@ -834,7 +869,9 @@ class WorxVisionCoordinator(DataUpdateCoordinator[dict[str, DeviceHandler]]):
         set_lock = getattr(self.cloud, "set_lock", None)
         if set_lock is None:
             raise HomeAssistantError(
-                "The installed pyworxcloud version does not support lock updates"
+                translation_domain=DOMAIN,
+                translation_key="library_feature_unsupported",
+                translation_placeholders={"feature": "set_lock"},
             )
 
         await self._async_run_cloud_call(
@@ -848,7 +885,9 @@ class WorxVisionCoordinator(DataUpdateCoordinator[dict[str, DeviceHandler]]):
         toggle_schedule = getattr(self.cloud, "toggle_schedule", None)
         if toggle_schedule is None:
             raise HomeAssistantError(
-                "The installed pyworxcloud version does not support schedule toggling"
+                translation_domain=DOMAIN,
+                translation_key="library_feature_unsupported",
+                translation_placeholders={"feature": "toggle_schedule"},
             )
 
         await self._async_run_cloud_call(
@@ -861,7 +900,9 @@ class WorxVisionCoordinator(DataUpdateCoordinator[dict[str, DeviceHandler]]):
         start_firmware_upgrade = getattr(self.cloud, "start_firmware_upgrade", None)
         if start_firmware_upgrade is None:
             raise HomeAssistantError(
-                "The installed pyworxcloud version does not support firmware installs"
+                translation_domain=DOMAIN,
+                translation_key="library_feature_unsupported",
+                translation_placeholders={"feature": "start_firmware_upgrade"},
             )
 
         await self._async_run_cloud_call(
@@ -877,7 +918,9 @@ class WorxVisionCoordinator(DataUpdateCoordinator[dict[str, DeviceHandler]]):
         )
         if reset_charge_cycle_counter is None:
             raise HomeAssistantError(
-                "The installed pyworxcloud version does not support battery cycle reset"
+                translation_domain=DOMAIN,
+                translation_key="library_feature_unsupported",
+                translation_placeholders={"feature": "reset_charge_cycle_counter"},
             )
 
         await self._async_run_cloud_call(
@@ -909,7 +952,9 @@ class WorxVisionCoordinator(DataUpdateCoordinator[dict[str, DeviceHandler]]):
         set_border_distance = getattr(self.cloud, "set_border_distance", None)
         if set_border_distance is None:
             raise HomeAssistantError(
-                "The installed pyworxcloud version does not support border distance updates"
+                translation_domain=DOMAIN,
+                translation_key="library_feature_unsupported",
+                translation_placeholders={"feature": "set_border_distance"},
             )
 
         await self._async_run_cloud_call(
@@ -924,8 +969,9 @@ class WorxVisionCoordinator(DataUpdateCoordinator[dict[str, DeviceHandler]]):
         """Send the observed Vision Cloud border-cut payload for pyworxcloud 6.3.x."""
         mower = self.cloud.get_mower(serial_number)
         if mower.get("protocol") != 1:
-            raise ValueError(
-                "Intelligent edge cutting is only supported for protocol 1 devices"
+            raise HomeAssistantError(
+                translation_domain=DOMAIN,
+                translation_key="smart_edge_cut_unsupported",
             )
 
         payload = {

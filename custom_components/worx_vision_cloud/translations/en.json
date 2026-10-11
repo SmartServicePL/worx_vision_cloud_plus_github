@@ -425,6 +425,36 @@
     },
     "integration_not_loaded": {
       "message": "Worx Vision Cloud PLUS ({entry}) is not loaded (state: {state}). Check the integration and the Worx cloud connection."
+    },
+    "library_feature_unsupported": {
+      "message": "The installed pyworxcloud version does not support this function ({feature}). Update the integration."
+    },
+    "command_topic_unavailable": {
+      "message": "The Worx cloud did not provide the command channel for this mower. Try again after the next refresh."
+    },
+    "mower_uuid_unavailable": {
+      "message": "The Worx cloud did not provide the mower identifier (UUID). Try again after the next refresh."
+    },
+    "edge_cut_unsupported": {
+      "message": "Edge cutting is not supported for this mower."
+    },
+    "one_time_mowing_unsupported": {
+      "message": "One-time mowing is not supported for this mower."
+    },
+    "legacy_single_zone": {
+      "message": "Mowers with a boundary wire accept only one zone per one-time mowing command."
+    },
+    "runtime_required": {
+      "message": "Set a mowing time of at least 1 minute. A time of 0 is only allowed for an edge-only pass."
+    },
+    "edge_only_without_zones": {
+      "message": "An edge-only pass (mowing time 0) cannot be limited to zones. Remove the zones or set a mowing time."
+    },
+    "unknown_zone_option": {
+      "message": "Unknown zone selection: {option}"
+    },
+    "smart_edge_cut_unsupported": {
+      "message": "Smart edge cutting is only available for Vision / RTK mowers."
     }
   }
 }

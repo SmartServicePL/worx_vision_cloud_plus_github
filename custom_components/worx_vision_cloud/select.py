@@ -10,6 +10,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
+from .const import DOMAIN
 from .entity import WorxVisionEntity
 from .helpers import get_dict_value, rtk_map_attributes
 
@@ -174,7 +175,11 @@ class OneTimeMowingZonesSelect(WorxVisionEntity, SelectEntity):
         if current_label not in options:
             options[current_label] = current_zones
         if option not in options:
-            raise HomeAssistantError(f"Unknown one-time mowing zone option: {option}")
+            raise HomeAssistantError(
+                translation_domain=DOMAIN,
+                translation_key="unknown_zone_option",
+                translation_placeholders={"option": option},
+            )
         await self.coordinator.async_set_one_time_mowing_zones(
             self._serial_number, options[option]
         )

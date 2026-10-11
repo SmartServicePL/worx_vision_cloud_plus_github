@@ -425,6 +425,36 @@
     },
     "integration_not_loaded": {
       "message": "Worx Vision Cloud PLUS ({entry}) non è caricata (stato: {state}). Controlla l'integrazione e la connessione al cloud Worx."
+    },
+    "library_feature_unsupported": {
+      "message": "La versione installata di pyworxcloud non supporta questa funzione ({feature}). Aggiorna l'integrazione."
+    },
+    "command_topic_unavailable": {
+      "message": "Il cloud Worx non ha fornito il canale dei comandi per questo robot. Riprova dopo il prossimo aggiornamento."
+    },
+    "mower_uuid_unavailable": {
+      "message": "Il cloud Worx non ha fornito l'identificativo del robot (UUID). Riprova dopo il prossimo aggiornamento."
+    },
+    "edge_cut_unsupported": {
+      "message": "Il taglio dei bordi non è supportato da questo robot."
+    },
+    "one_time_mowing_unsupported": {
+      "message": "Il taglio singolo non è supportato da questo robot."
+    },
+    "legacy_single_zone": {
+      "message": "I robot con filo perimetrale accettano una sola zona per taglio singolo."
+    },
+    "runtime_required": {
+      "message": "Imposta un tempo di taglio di almeno 1 minuto. Il tempo 0 è consentito solo per il solo taglio dei bordi."
+    },
+    "edge_only_without_zones": {
+      "message": "Il solo taglio dei bordi (tempo 0) non può essere limitato alle zone. Rimuovi le zone o imposta un tempo di taglio."
+    },
+    "unknown_zone_option": {
+      "message": "Selezione delle zone sconosciuta: {option}"
+    },
+    "smart_edge_cut_unsupported": {
+      "message": "Il taglio intelligente dei bordi è disponibile solo per i robot Vision / RTK."
     }
   }
 }

@@ -425,6 +425,36 @@
     },
     "integration_not_loaded": {
       "message": "Worx Vision Cloud PLUS ({entry}) är inte laddad (status: {state}). Kontrollera integrationen och anslutningen till Worx-molnet."
+    },
+    "library_feature_unsupported": {
+      "message": "Den installerade pyworxcloud-versionen stöder inte den här funktionen ({feature}). Uppdatera integrationen."
+    },
+    "command_topic_unavailable": {
+      "message": "Worx-molnet gav ingen kommandokanal för den här robotgräsklipparen. Försök igen efter nästa uppdatering."
+    },
+    "mower_uuid_unavailable": {
+      "message": "Worx-molnet gav inget id för robotgräsklipparen (UUID). Försök igen efter nästa uppdatering."
+    },
+    "edge_cut_unsupported": {
+      "message": "Kantklippning stöds inte av den här robotgräsklipparen."
+    },
+    "one_time_mowing_unsupported": {
+      "message": "Engångsklippning stöds inte av den här robotgräsklipparen."
+    },
+    "legacy_single_zone": {
+      "message": "Robotgräsklippare med begränsningskabel accepterar bara en zon per engångsklippning."
+    },
+    "runtime_required": {
+      "message": "Ange en klipptid på minst 1 minut. 0 tillåts bara för enbart kantklippning."
+    },
+    "edge_only_without_zones": {
+      "message": "Enbart kantklippning (klipptid 0) kan inte begränsas till zoner. Ta bort zonerna eller ange en klipptid."
+    },
+    "unknown_zone_option": {
+      "message": "Okänt zonval: {option}"
+    },
+    "smart_edge_cut_unsupported": {
+      "message": "Smart kantklippning finns bara för Vision / RTK-robotgräsklippare."
     }
   }
 }

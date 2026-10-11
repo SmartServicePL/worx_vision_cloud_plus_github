@@ -425,6 +425,36 @@
     },
     "integration_not_loaded": {
       "message": "Integracja Worx Vision Cloud PLUS ({entry}) nie jest załadowana (stan: {state}). Sprawdź integrację i połączenie z chmurą Worx."
+    },
+    "library_feature_unsupported": {
+      "message": "Zainstalowana wersja pyworxcloud nie obsługuje tej funkcji ({feature}). Zaktualizuj integrację."
+    },
+    "command_topic_unavailable": {
+      "message": "Chmura Worx nie podała kanału poleceń dla tej kosiarki. Spróbuj ponownie po następnym odświeżeniu."
+    },
+    "mower_uuid_unavailable": {
+      "message": "Chmura Worx nie podała identyfikatora kosiarki (UUID). Spróbuj ponownie po następnym odświeżeniu."
+    },
+    "edge_cut_unsupported": {
+      "message": "Ta kosiarka nie obsługuje przycinania krawędzi."
+    },
+    "one_time_mowing_unsupported": {
+      "message": "Ta kosiarka nie obsługuje koszenia jednorazowego."
+    },
+    "legacy_single_zone": {
+      "message": "Kosiarki z przewodem granicznym przyjmują tylko jedną strefę na jedno koszenie jednorazowe."
+    },
+    "runtime_required": {
+      "message": "Ustaw czas koszenia co najmniej 1 minutę. Czas 0 jest dozwolony tylko przy samym przycinaniu krawędzi."
+    },
+    "edge_only_without_zones": {
+      "message": "Samego przycinania krawędzi (czas koszenia 0) nie można ograniczyć do stref. Usuń strefy albo ustaw czas koszenia."
+    },
+    "unknown_zone_option": {
+      "message": "Nieznany wybór stref: {option}"
+    },
+    "smart_edge_cut_unsupported": {
+      "message": "Inteligentne cięcie krawędziowe jest dostępne tylko w kosiarkach Vision / RTK."
     }
   }
 }

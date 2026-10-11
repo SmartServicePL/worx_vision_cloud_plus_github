@@ -11,6 +11,7 @@ from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
+from .const import DOMAIN
 from .entity import WorxVisionEntity
 
 
@@ -31,7 +32,9 @@ async def _reset_blade_counter(coordinator, serial_number: str) -> None:
     reset_blade_counter = getattr(coordinator.cloud, "reset_blade_counter", None)
     if reset_blade_counter is None:
         raise HomeAssistantError(
-            "The installed pyworxcloud version does not support blade counter reset"
+            translation_domain=DOMAIN,
+            translation_key="library_feature_unsupported",
+            translation_placeholders={"feature": "reset_blade_counter"},
         )
 
     await coordinator.async_cloud_command(

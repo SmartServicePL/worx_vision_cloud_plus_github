@@ -425,6 +425,36 @@
     },
     "integration_not_loaded": {
       "message": "Worx Vision Cloud PLUS ({entry}) er ikke lastet (status: {state}). Sjekk integrasjonen og tilkoblingen til Worx-skyen."
+    },
+    "library_feature_unsupported": {
+      "message": "Den installerte pyworxcloud-versjonen støtter ikke denne funksjonen ({feature}). Oppdater integrasjonen."
+    },
+    "command_topic_unavailable": {
+      "message": "Worx-skyen oppga ingen kommandokanal for denne robotklipperen. Prøv igjen etter neste oppdatering."
+    },
+    "mower_uuid_unavailable": {
+      "message": "Worx-skyen oppga ingen ID for robotklipperen (UUID). Prøv igjen etter neste oppdatering."
+    },
+    "edge_cut_unsupported": {
+      "message": "Kantklipping støttes ikke av denne robotklipperen."
+    },
+    "one_time_mowing_unsupported": {
+      "message": "Engangsklipping støttes ikke av denne robotklipperen."
+    },
+    "legacy_single_zone": {
+      "message": "Robotklippere med avgrensningskabel godtar bare én sone per engangsklipping."
+    },
+    "runtime_required": {
+      "message": "Angi en klippetid på minst 1 minutt. 0 er bare tillatt for kun kantklipping."
+    },
+    "edge_only_without_zones": {
+      "message": "Kun kantklipping (klippetid 0) kan ikke begrenses til soner. Fjern sonene eller angi en klippetid."
+    },
+    "unknown_zone_option": {
+      "message": "Ukjent sonevalg: {option}"
+    },
+    "smart_edge_cut_unsupported": {
+      "message": "Smart kantklipping er bare tilgjengelig for Vision / RTK-robotklippere."
     }
   }
 }
