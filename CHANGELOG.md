@@ -2,6 +2,48 @@
 
 ## Unreleased
 
+## 1.6.0 - 2026-10-11
+
+- Fixed MQTT reconnects leaving the previous connection running. pyworxcloud
+  creates a new MQTT client on every reconnect and does not stop the old one,
+  which kept reconnecting in the background and delivered the same updates
+  again. The previous client and the library's background retry are now
+  stopped before reconnecting.
+- Cloud data is refreshed when pyworxcloud refreshes its own cloud data
+  (every 5-10 minutes). The fixed periodic refresh is now a 15-minute
+  fallback instead of a second round of requests every 5 minutes, which
+  lowers the risk of Worx rate limits without making statistics older.
+- Added **Download diagnostics**: the file contains the mower state, the raw
+  cloud payload, product details and maintenance values, with login data,
+  serial numbers, UUID, MAC addresses, MQTT details, the RTK position and all
+  coordinates removed. The RTK map is reduced to the number of boundaries and
+  zones.
+- Optional raw payload entities no longer expose the RTK position or other
+  coordinate fields. Entities created for those values by earlier versions
+  stay unavailable and can be removed.
+- The remaining English error messages are translated in all ten languages,
+  including "the installed pyworxcloud version does not support this
+  function".
+- One-time mowing with a mowing time of 0 and selected zones is rejected
+  with a clear validation error; previously Vision/RTK mowers received a
+  command with a zero mowing time. A mowing time of 0 without edge cutting is
+  also reported as a validation error. The edge-only pass used by the smart
+  mowing blueprint is unchanged.
+- Raw payload entities are computed once per update instead of once per
+  entity, which matters when hundreds of raw entities are enabled.
+- Runtime objects are kept in `entry.runtime_data`, the current Home
+  Assistant pattern; no change for users.
+- Documented that status 8 is a mowing state in pyworxcloud; "lifted" is
+  error code 2 and keeps being shown as an error. Documented the release tag
+  scheme in `PUBLISHING.md`.
+- The status sensor now has a state for every mower state that pyworxcloud
+  reports. It showed `unknown` for some of them, for example 104
+  `searching home`, which the Worx cloud can keep after a return command sent
+  to a mower that already stands in the dock. New translated states:
+  searching for the dock, searching for zone, remote control and zone
+  training; the other rare states map to leaving the dock, returning, error
+  or mowing.
+
 ## 1.5.1 - 2026-10-11
 
 - The default blade service interval is now 100 hours of blade runtime instead
