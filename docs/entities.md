@@ -112,7 +112,7 @@ overlapping passes and is not the same as unique physical lawn area.
 - Lawn perimeter
 - Vision border distance
 - One-time mowing runtime
-- Blade service interval / hours of blade runtime, default 12 h (the threshold used before 1.5.0)
+- Blade service interval / hours of blade runtime, default 100 h (Worx Wiki: replace Vision blades after about 100-200 operating hours)
 - Blade service interval (days) / optional, days since the blade counter reset, `0` = off (default)
 - Battery service interval / charge cycles, default 500
 

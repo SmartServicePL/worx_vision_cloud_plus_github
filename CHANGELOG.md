@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+## 1.5.1 - 2026-10-11
+
+- The default blade service interval is now 100 hours of blade runtime instead
+  of 12 hours, following the Worx Wiki for Vision mowers (replace the blades
+  after about 100-200 operating hours). With 12 hours the "Blade replacement
+  due" alert came back almost every day. A value you set on the mower's
+  device page is kept.
+
 ## 1.5.0 - 2026-10-11
 
 - Mower commands (start, pause, dock), the one-time mowing action, edge

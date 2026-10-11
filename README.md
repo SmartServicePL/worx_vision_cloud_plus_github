@@ -101,7 +101,7 @@ Raw payload entities can be turned on or off later with **Configure** on the
 integration card.
 
 Maintenance intervals are per-mower `number` entities: blade service interval
-in hours (default 12 h, as before), an optional blade interval in days (off by
+in hours (default 100 h), an optional blade interval in days (off by
 default) and battery service interval in charge cycles (default 500). The
 Worx Wiki suggests replacing Vision blades after roughly 100-200 operating
 hours or every 1-2 months; adjust the intervals to your mower and lawn.

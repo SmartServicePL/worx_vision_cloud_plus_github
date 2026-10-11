@@ -48,14 +48,14 @@ ATTR_EDGE_CUT = "edge_cut"
 ATTR_RUNTIME = "runtime"
 ATTR_ZONES = "zones"
 
-# Local, per-mower maintenance intervals (number entities). The defaults keep
-# the thresholds used before they became configurable: 720 blade minutes (12 h)
-# and 500 battery charge cycles; the day-based blade interval is off (0).
+# Local, per-mower maintenance intervals (number entities). The blade default
+# follows the Worx Wiki for Vision mowers (replace after about 100-200 operating
+# hours); 500 battery charge cycles; the day-based blade interval is off (0).
 MAINTENANCE_BLADE_HOURS = "blade_hours"
 MAINTENANCE_BATTERY_CYCLES = "battery_cycles"
 MAINTENANCE_BLADE_DAYS = "blade_days"
 MAINTENANCE_DEFAULTS = {
-    MAINTENANCE_BLADE_HOURS: 12,
+    MAINTENANCE_BLADE_HOURS: 100,
     MAINTENANCE_BATTERY_CYCLES: 500,
     MAINTENANCE_BLADE_DAYS: 0,
 }

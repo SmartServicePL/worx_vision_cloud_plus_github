@@ -323,7 +323,7 @@ class MaintenanceStorageTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_defaults_keep_previous_thresholds(self) -> None:
         coordinator = _coordinator()
-        self.assertEqual(coordinator.maintenance_threshold(SERIAL, "blade_hours"), 12)
+        self.assertEqual(coordinator.maintenance_threshold(SERIAL, "blade_hours"), 100)
         self.assertEqual(coordinator.maintenance_threshold(SERIAL, "battery_cycles"), 500)
         self.assertEqual(coordinator.maintenance_threshold(SERIAL, "blade_days"), 0)
 
@@ -350,14 +350,14 @@ class MaintenanceStorageTests(unittest.IsolatedAsyncioTestCase):
     async def test_summary_uses_local_intervals(self) -> None:
         coordinator = _coordinator()
         coordinator.data[SERIAL]._worx_vision_product_item = {
-            "blade_work_time": 900,
+            "blade_work_time": 6100,
             "blade_work_time_reset": 0,
             "battery_charge_cycles": 520,
         }
         summary = coordinator.maintenance_summary(SERIAL)
         self.assertTrue(summary["blade_service_due"])
         self.assertTrue(summary["battery_service_due"])
-        await coordinator.async_set_maintenance_threshold(SERIAL, "blade_hours", 100)
+        await coordinator.async_set_maintenance_threshold(SERIAL, "blade_hours", 200)
         summary = coordinator.maintenance_summary(SERIAL)
         self.assertFalse(summary["blade_service_due"])
 
