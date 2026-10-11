@@ -41,7 +41,6 @@ from .helpers import (
     maintenance_state,
     next_schedule_start,
     raw_entity_path_map,
-    raw_entity_values,
     raw_path_enabled_default,
     rtk_at_station,
     rtk_current_zone,
@@ -1007,7 +1006,7 @@ async def async_setup_entry(
 
         for serial_number, device in (coordinator.data or {}).items():
             paths = raw_entity_path_map(device)
-            for key, value in raw_entity_values(device).items():
+            for key, value in coordinator.raw_values(serial_number).items():
                 if isinstance(value, bool):
                     continue
                 unique = f"{serial_number}_raw_{key}"
@@ -1411,7 +1410,7 @@ class WorxVisionRawSensor(WorxVisionEntity, SensorEntity):
     @property
     def native_value(self) -> Any:
         """Return current raw value."""
-        value = raw_entity_values(self.device).get(self._raw_key)
+        value = self.coordinator.raw_values(self._serial_number).get(self._raw_key)
         if isinstance(value, bool):
             return None
         return value

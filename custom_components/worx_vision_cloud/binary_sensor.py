@@ -24,7 +24,6 @@ from .helpers import (
     get_dict_value,
     get_nested_value,
     raw_entity_path_map,
-    raw_entity_values,
     raw_path_enabled_default,
 )
 
@@ -433,7 +432,7 @@ async def async_setup_entry(
 
         for serial_number, device in (coordinator.data or {}).items():
             paths = raw_entity_path_map(device)
-            for key, value in raw_entity_values(device).items():
+            for key, value in coordinator.raw_values(serial_number).items():
                 if not isinstance(value, bool):
                     continue
                 unique = f"{serial_number}_raw_binary_{key}"
@@ -513,7 +512,7 @@ class WorxVisionRawBinarySensor(WorxVisionEntity, BinarySensorEntity):
     @property
     def is_on(self) -> bool | None:
         """Return current raw bool."""
-        value = raw_entity_values(self.device).get(self._raw_key)
+        value = self.coordinator.raw_values(self._serial_number).get(self._raw_key)
         return value if isinstance(value, bool) else None
 
     @property

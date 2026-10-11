@@ -44,6 +44,7 @@ from .helpers import (
     MOWING_STATUS_IDS,
     get_dict_value,
     maintenance_summary,
+    raw_entity_values,
     rtk_position,
 )
 from .statistics import DailyStatisticsTracker
@@ -151,6 +152,7 @@ class WorxVisionCoordinator(DataUpdateCoordinator[dict[str, DeviceHandler]]):
         )
         self._maintenance: dict[str, dict[str, int]] = {}
         self._connect_lock = asyncio.Lock()
+        self._raw_values_cache: dict[str, dict[str, Any]] = {}
         self._connect_generation = 0
         self._rest_backoff_until: datetime | None = None
         self._rest_auth_error: AuthorizationError | None = None
@@ -203,6 +205,25 @@ class WorxVisionCoordinator(DataUpdateCoordinator[dict[str, DeviceHandler]]):
             data = dict(self.data or {})
             data[str(serial)] = device
             self._async_publish_data(data)
+
+    def async_update_listeners(self) -> None:
+        """Drop cached raw values before entities read the new data."""
+        self._raw_values_cache.clear()
+        super().async_update_listeners()
+
+    def raw_values(self, serial_number: str) -> dict[str, Any]:
+        """Return flattened raw payload values, computed once per update.
+
+        Every raw entity reads one value from the same flattened payload, so
+        flattening it per entity would repeat the work hundreds of times on
+        each MQTT push when raw entities are enabled.
+        """
+        values = self._raw_values_cache.get(serial_number)
+        if values is None:
+            device = (self.data or {}).get(serial_number)
+            values = raw_entity_values(device) if device is not None else {}
+            self._raw_values_cache[serial_number] = values
+        return values
 
     def _async_publish_data(self, data: dict[str, DeviceHandler]) -> None:
         """Notify entities without postponing the periodic REST refresh.
