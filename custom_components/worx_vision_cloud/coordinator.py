@@ -286,8 +286,46 @@ class WorxVisionCoordinator(DataUpdateCoordinator[dict[str, DeviceHandler]]):
                     return
             elif generation != self._connect_generation:
                 return
+            await self._async_release_stale_mqtt()
             await self.cloud.connect()
             self._connect_generation += 1
+
+    async def _async_release_stale_mqtt(self) -> None:
+        """Stop the previous MQTT client before connect() creates a new one.
+
+        pyworxcloud's connect() always creates a new MQTT client with a new
+        client id and does not stop the old one. The old paho client keeps
+        reconnecting in its own thread and keeps delivering the same updates,
+        so every reconnect would leave one more client behind. The library's
+        own background retry task is stopped as well, because connect()
+        replaces the event it watches and the task would otherwise keep
+        replacing the new client later.
+        """
+        cloud = self.cloud
+        retry_task = getattr(cloud, "_mqtt_retry_task", None)
+        if retry_task is not None and not retry_task.done():
+            retry_task.cancel()
+            try:
+                await retry_task
+            except asyncio.CancelledError:
+                pass
+            except Exception:  # noqa: BLE001 - the task is being discarded
+                _LOGGER.debug("Worx MQTT retry task ended with an error", exc_info=True)
+            cloud._mqtt_retry_task = None
+
+        if getattr(cloud, "mqtt", None) is None:
+            return
+        disconnect_mqtt = getattr(cloud, "_disconnect_mqtt", None)
+        if disconnect_mqtt is None:
+            _LOGGER.debug(
+                "pyworxcloud has no _disconnect_mqtt; the old MQTT client is left running"
+            )
+            return
+        try:
+            await disconnect_mqtt(_LOGGER)
+        except Exception:  # noqa: BLE001 - a broken old client must not block reconnecting
+            _LOGGER.debug("Could not stop the previous Worx MQTT client", exc_info=True)
+            cloud.mqtt = None
 
     async def _async_ensure_mqtt_connected(self) -> None:
         """Reconnect MQTT before sending mower commands when the cloud session is stale."""
